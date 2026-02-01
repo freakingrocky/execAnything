@@ -14,6 +14,16 @@ def test_handle_ping_returns_result():
     assert response["result"]["service"] == "desktop-runner"
 
 
+def test_handle_unknown_method_returns_jsonrpc_error():
+    payload = {"jsonrpc": "2.0", "id": 99, "method": "nope.method", "params": {}}
+    response = server.handle_request(payload)
+
+    assert response["jsonrpc"] == "2.0"
+    assert response["id"] == 99
+    assert "error" in response
+    assert response["error"]["code"] == -32601
+
+
 def test_handle_artifact_screenshot_returns_trace(tmp_path, monkeypatch):
     def fake_capture(name, base_dir=None, mode=None):
         path = Path(base_dir or tmp_path) / name

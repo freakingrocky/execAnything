@@ -35,6 +35,22 @@ def test_resolve_ladder_returns_first_match():
     assert attempts[0]["matched_count"] == 1
     assert element == "element-1"
 
+def test_resolve_ladder_tries_next_rung_when_no_match():
+    adapter = FakeAdapter(matches={"secondary": ["element-2"]})
+    target = {
+        "ladder": [
+            {"kind": "uia", "selector": {"id": "primary"}, "confidence": 0.9},
+            {"kind": "uia", "selector": {"id": "secondary"}, "confidence": 0.5},
+        ]
+    }
+
+    resolved, attempts, element = resolve_ladder(target, adapter=adapter, return_element=True)
+
+    assert resolved["rung_index"] == 1
+    assert resolved["element"]["name"] == "element-2"
+    assert attempts[0]["matched_count"] == 0
+    assert attempts[1]["matched_count"] == 1
+
 
 def test_resolve_ladder_raises_on_ambiguous():
     adapter = FakeAdapter(matches={"primary": ["a", "b"]})

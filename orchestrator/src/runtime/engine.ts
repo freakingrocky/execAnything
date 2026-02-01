@@ -2,8 +2,19 @@ import fs from "fs/promises";
 import path from "path";
 import { CheckpointStore } from "./checkpoints";
 import { RunArtifacts } from "./artifacts";
-import { Assertion, InputValue, WorkflowDefinition, WorkflowStep, WorkflowTarget } from "../types/workflow";
-import { DesktopClient, DesktopRpcError, DesktopTarget, StepTrace } from "../rpc/desktopClient";
+import {
+  Assertion,
+  InputValue,
+  WorkflowDefinition,
+  WorkflowStep,
+  WorkflowTarget,
+} from "../types/workflow";
+import {
+  DesktopClient,
+  DesktopRpcError,
+  DesktopTarget,
+  StepTrace,
+} from "../rpc/desktopClient";
 
 export interface RuntimeEngineOptions {
   checkpointStore: CheckpointStore;
@@ -32,8 +43,13 @@ export class RuntimeEngine {
     inputs: Record<string, unknown>,
     desktopClient: DesktopClient,
   ): Promise<void> {
-    await this.checkpointStore.recordRunStart(this.artifacts.runId, new Date().toISOString());
-    const resumeFrom = this.resume ? await this.checkpointStore.getLastCompletedStepId(this.artifacts.runId) : null;
+    await this.checkpointStore.recordRunStart(
+      this.artifacts.runId,
+      new Date().toISOString(),
+    );
+    const resumeFrom = this.resume
+      ? await this.checkpointStore.getLastCompletedStepId(this.artifacts.runId)
+      : null;
     const resumeIndex = resumeFrom
       ? workflow.steps.findIndex((step) => step.id === resumeFrom)
       : -1;
@@ -49,7 +65,10 @@ export class RuntimeEngine {
       await this.runStep(step, inputs, desktopClient);
     }
 
-    await this.checkpointStore.recordRunEnd(this.artifacts.runId, new Date().toISOString());
+    await this.checkpointStore.recordRunEnd(
+      this.artifacts.runId,
+      new Date().toISOString(),
+    );
   }
 
   private async runStep(
@@ -58,11 +77,18 @@ export class RuntimeEngine {
     desktopClient: DesktopClient,
   ): Promise<void> {
     const startedAt = new Date().toISOString();
-    await this.checkpointStore.recordStepStart(this.artifacts.runId, step.id, startedAt);
-    console.log(`[run:${this.artifacts.runId}] step ${step.id} (${step.action})`);
+    await this.checkpointStore.recordStepStart(
+      this.artifacts.runId,
+      step.id,
+      startedAt,
+    );
+    console.log(
+      `[run:${this.artifacts.runId}] step ${step.id} (${step.action})`,
+    );
 
     try {
-      const stepTimeoutMs = step.timeouts?.step_timeout_ms ?? this.defaultTimeoutMs;
+      const stepTimeoutMs =
+        step.timeouts?.step_timeout_ms ?? this.defaultTimeoutMs;
       await this.withTimeout(async () => {
         if (step.driver !== "desktop") {
           throw new Error(`Unsupported driver in Phase 1: ${step.driver}`);
@@ -72,12 +98,18 @@ export class RuntimeEngine {
           const trace = await desktopClient.assertCheck({
             run_id: this.artifacts.runId,
             step_id: step.id,
-            assertions: step.pre_assert.map((assertion) => this.normalizeAssertion(assertion)),
+            assertions: step.pre_assert.map((assertion) =>
+              this.normalizeAssertion(assertion),
+            ),
           });
           await this.appendTrace(trace);
         }
 
-        const actionTrace = await this.executeAction(step, inputs, desktopClient);
+        const actionTrace = await this.executeAction(
+          step,
+          inputs,
+          desktopClient,
+        );
         if (actionTrace) {
           await this.appendTrace(actionTrace);
         }
@@ -86,17 +118,29 @@ export class RuntimeEngine {
           const trace = await desktopClient.assertCheck({
             run_id: this.artifacts.runId,
             step_id: step.id,
-            assertions: step.post_assert.map((assertion) => this.normalizeAssertion(assertion)),
+            assertions: step.post_assert.map((assertion) =>
+              this.normalizeAssertion(assertion),
+            ),
           });
           await this.appendTrace(trace);
         }
       }, stepTimeoutMs);
 
       const endedAt = new Date().toISOString();
-      await this.checkpointStore.recordStepEnd(this.artifacts.runId, step.id, endedAt, true);
+      await this.checkpointStore.recordStepEnd(
+        this.artifacts.runId,
+        step.id,
+        endedAt,
+        true,
+      );
     } catch (error) {
       const endedAt = new Date().toISOString();
-      await this.checkpointStore.recordStepEnd(this.artifacts.runId, step.id, endedAt, false);
+      await this.checkpointStore.recordStepEnd(
+        this.artifacts.runId,
+        step.id,
+        endedAt,
+        false,
+      );
       await this.appendTraceFromError(error);
       throw error;
     }
@@ -108,7 +152,8 @@ export class RuntimeEngine {
     desktopClient: DesktopClient,
   ): Promise<StepTrace | null> {
     const target = step.target ? this.normalizeTarget(step.target) : undefined;
-    const timeout_ms = step.timeouts?.wait_timeout_ms ?? step.timeouts?.step_timeout_ms;
+    const timeout_ms =
+      step.timeouts?.wait_timeout_ms ?? step.timeouts?.step_timeout_ms;
     const capture_screenshots = Boolean(step.params?.capture_screenshots);
 
     switch (step.action) {
@@ -167,23 +212,37 @@ export class RuntimeEngine {
         });
       }
       case "assert": {
-        const assertions = (step.params?.assertions as Assertion[] | undefined) ?? step.post_assert ?? [];
+        const assertions =
+          (step.params?.assertions as Assertion[] | undefined) ??
+          step.post_assert ??
+          [];
         return desktopClient.assertCheck({
           run_id: this.artifacts.runId,
           step_id: step.id,
-          assertions: assertions.map((assertion) => this.normalizeAssertion(assertion)),
+          assertions: assertions.map((assertion) =>
+            this.normalizeAssertion(assertion),
+          ),
         });
       }
       default:
-        throw new Error(`Unsupported desktop action in Phase 1: ${step.action}`);
+        throw new Error(
+          `Unsupported desktop action in Phase 1: ${step.action}`,
+        );
     }
   }
 
-  private resolveInput(value: InputValue | undefined, inputs: Record<string, unknown>): string {
+  private resolveInput(
+    value: InputValue | undefined,
+    inputs: Record<string, unknown>,
+  ): string {
     if (value === null || value === undefined) {
       return "";
     }
-    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    if (
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean"
+    ) {
       return String(value);
     }
 
@@ -209,8 +268,12 @@ export class RuntimeEngine {
   }
 
   private normalizeTarget(target: WorkflowTarget): DesktopTarget {
-    const scope = (target.scope as { desktop?: DesktopTarget["scope"] } | DesktopTarget["scope"] | undefined)
-      ?.desktop;
+    const scope = (
+      target.scope as
+        | { desktop?: DesktopTarget["scope"] }
+        | DesktopTarget["scope"]
+        | undefined
+    )?.desktop;
     return {
       ladder: target.ladder,
       scope: scope ?? (target.scope as DesktopTarget["scope"] | undefined),
@@ -242,7 +305,10 @@ export class RuntimeEngine {
     }
   }
 
-  private async withTimeout<T>(task: () => Promise<T>, timeoutMs: number): Promise<T> {
+  private async withTimeout<T>(
+    task: () => Promise<T>,
+    timeoutMs: number,
+  ): Promise<T> {
     let timeoutHandle: NodeJS.Timeout | null = null;
     const timeoutPromise = new Promise<never>((_, reject) => {
       timeoutHandle = setTimeout(() => {

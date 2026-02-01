@@ -16,6 +16,9 @@ class FakeImage:
 
 def test_capture_screenshot_writes_file(tmp_path, monkeypatch):
     fake_pil = ModuleType("PIL")
+    monkeypatch.setitem(sys.modules, "PIL", fake_pil)
+    assert sys.modules["PIL"] is fake_pil
+
 
     class FakeImageGrab:
         @staticmethod

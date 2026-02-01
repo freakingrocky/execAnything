@@ -23,3 +23,18 @@ def test_recording_event_schema(tmp_path):
     assert payload["type"] == "click"
     assert "window" in payload
     assert "target" in payload
+
+
+def test_recording_event_schema_rejects_missing_required_fields():
+    event = build_event(
+        "click",
+        window={"title": "Test", "process_name": "app.exe"},
+        target={"uia": {"name": "Button"}, "ancestry": []},
+        cursor={"x": 10, "y": 20},
+        metadata={"button": "left"},
+    )
+
+    # Remove a required field to ensure validator is real
+    event.pop("type", None)
+
+    assert validate_event_schema(event) is False

@@ -10,6 +10,7 @@ import { WorkflowDefinition } from "../src/types/workflow";
 
 class FakeDesktopClient {
   executedSteps: string[] = [];
+  calls: Array<{ method: string; params: any }> = [];
 
   private createTrace(stepId: string): StepTrace {
     return {
@@ -23,16 +24,19 @@ class FakeDesktopClient {
   }
 
   async assertCheck(params: { step_id: string }): Promise<StepTrace> {
+    this.calls.push({ method: "assert.check", params });
     this.executedSteps.push(`assert:${params.step_id}`);
     return this.createTrace(params.step_id);
   }
 
   async click(params: { step_id: string }): Promise<StepTrace> {
+    this.calls.push({ method: "action.click", params });
     this.executedSteps.push(`click:${params.step_id}`);
     return this.createTrace(params.step_id);
   }
 
   async pasteText(params: { step_id: string }): Promise<StepTrace> {
+    this.calls.push({ method: "extract.getValue", params });
     this.executedSteps.push(`paste:${params.step_id}`);
     return this.createTrace(params.step_id);
   }
@@ -43,6 +47,7 @@ class FakeDesktopClient {
   }
 
   async extractGetValue(params: { step_id: string }): Promise<StepTrace> {
+    this.calls.push({ method: "extract.getValue", params });
     this.executedSteps.push(`extract:${params.step_id}`);
     return {
       ...this.createTrace(params.step_id),
@@ -54,7 +59,9 @@ class FakeDesktopClient {
 describe("RuntimeEngine", () => {
   it("runs a desktop workflow and writes step traces", async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "engine-run-"));
-    const artifacts = await new ArtifactManager(tempDir).createRunFolder("flow-1");
+    const artifacts = await new ArtifactManager(tempDir).createRunFolder(
+      "flow-1",
+    );
     const checkpointStore = new FileCheckpointStore(artifacts.runDir);
     const engine = new RuntimeEngine({
       checkpointStore,
@@ -84,19 +91,67 @@ describe("RuntimeEngine", () => {
 
     const client = new FakeDesktopClient();
     await engine.runWorkflow(workflow, {}, client as never);
+    // Engine must run pre_assert for step-1 (assert.check)
+    expect(
+      client.calls.some(
+        (c) => c.method === "assert.check" && c.params.step_id === "step-1",
+      ),
+    ).toBe(true);
+
+    // Engine must call click for step-1 with a target ladder
+    const click1 = client.calls.find(
+      (c) => c.method === "action.click" && c.params.step_id === "step-1",
+    );
+    expect(click1).toBeTruthy();
+    expect(click1!.params.target?.ladder?.[0]?.kind).toBe("uia");
+
+    // Engine must call extract for step-2 with a target ladder
+    const extract2 = client.calls.find(
+      (c) => c.method === "extract.getValue" && c.params.step_id === "step-2",
+    );
+    expect(extract2).toBeTruthy();
+    expect(extract2!.params.target?.ladder?.[0]?.kind).toBe("uia");
+
+    expect(client.executedSteps).toContain("assert:step-1");
 
     const tracePath = path.join(artifacts.logsDir, "step_traces.jsonl");
     const lines = fs.readFileSync(tracePath, "utf-8").trim().split("\n");
-    expect(lines.length).toBeGreaterThanOrEqual(3);
+
+    // For step-1: pre_assert + click + post_assert = 3 traces
+    // For step-2: extract = 1 trace
+    expect(lines).toHaveLength(4);
+
+    const traces = lines.map((l: string) => JSON.parse(l));
+    for (const t of traces) {
+      expect(t.run_id).toBeTruthy();
+      expect(t.step_id).toBeTruthy();
+      expect(typeof t.ok).toBe("boolean");
+      expect(t.started_at).toBeTruthy();
+      expect(t.ended_at).toBeTruthy();
+    }
+
+    const checkpointPath = path.join(artifacts.runDir, "checkpoints.json");
+    const ck = JSON.parse(fs.readFileSync(checkpointPath, "utf-8"));
+    expect(ck.last_success_step_id).toBe("step-2");
   });
 
   it("resumes from the last successful step", async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "engine-resume-"));
-    const artifacts = await new ArtifactManager(tempDir).createRunFolder("flow-2");
+    const artifacts = await new ArtifactManager(tempDir).createRunFolder(
+      "flow-2",
+    );
     const checkpointStore = new FileCheckpointStore(artifacts.runDir);
 
-    await checkpointStore.recordRunStart(artifacts.runId, new Date().toISOString());
-    await checkpointStore.recordStepEnd(artifacts.runId, "step-1", new Date().toISOString(), true);
+    await checkpointStore.recordRunStart(
+      artifacts.runId,
+      new Date().toISOString(),
+    );
+    await checkpointStore.recordStepEnd(
+      artifacts.runId,
+      "step-1",
+      new Date().toISOString(),
+      true,
+    );
 
     const engine = new RuntimeEngine({
       checkpointStore,

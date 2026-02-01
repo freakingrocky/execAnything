@@ -117,8 +117,16 @@ describe("DesktopClient", () => {
     const resolveLine = await reader.nextLine();
     const resolveRequest = JSON.parse(resolveLine) as {
       id: number;
+      jsonrpc: string;
       method: string;
+      params: any;
     };
+
+    expect(resolveRequest.jsonrpc).toBe("2.0");
+    expect(resolveRequest.method).toBe("target.resolve");
+    expect(resolveRequest.params.run_id).toBe("run_1");
+    expect(resolveRequest.params.step_id).toBe("step_1");
+    expect(resolveRequest.params.target?.ladder?.[0]?.kind).toBe("uia");
     stdout.write(
       JSON.stringify({
         jsonrpc: "2.0",
@@ -140,8 +148,19 @@ describe("DesktopClient", () => {
     const assertLine = await reader.nextLine();
     const assertRequest = JSON.parse(assertLine) as {
       id: number;
+      jsonrpc: string;
       method: string;
+      params: any;
     };
+    expect(resolveRequest.id).not.toBe(assertRequest.id);
+
+    expect(assertRequest.jsonrpc).toBe("2.0");
+    expect(assertRequest.method).toBe("assert.check");
+    expect(assertRequest.params.run_id).toBe("run_1");
+    expect(assertRequest.params.step_id).toBe("step_2");
+    expect(assertRequest.params.assertions?.[0]?.kind).toBe(
+      "desktop_element_exists",
+    );
     stdout.write(
       JSON.stringify({
         jsonrpc: "2.0",
@@ -162,6 +181,39 @@ describe("DesktopClient", () => {
     expect(resolveRequest.method).toBe("target.resolve");
     expect(assertRequest.method).toBe("assert.check");
 
+    await client.stop();
+  });
+
+  it("surfaces JSON-RPC error responses", async () => {
+    const { fakeProcess, stdin, stdout } = createFakeProcess();
+    const reader = createLineReader(stdin);
+
+    const client = new DesktopClient(
+      {
+        pythonExecutable: "python",
+        module: "desktop_runner.server",
+        requestTimeoutMs: 1000,
+        spawnTimeoutMs: 0,
+        pythonPath: ["desktop-runner/src"],
+      },
+      () => fakeProcess,
+    );
+
+    await client.start();
+    const pingPromise = client.ping();
+
+    const requestLine = await reader.nextLine();
+    const request = JSON.parse(requestLine) as { id: number };
+
+    stdout.write(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: request.id,
+        error: { code: -32601, message: "Method not found" },
+      }) + "\n",
+    );
+
+    await expect(pingPromise).rejects.toThrow(/Method not found/);
     await client.stop();
   });
 });

@@ -1,25 +1,27 @@
 import path from "path";
 import { pathToFileURL } from "url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { chromium, Page } from "playwright";
+import { Browser, BrowserContext, Page, chromium } from "playwright";
 import { resolveTarget } from "../src/selector/resolve";
 import { WebTarget } from "../src/types";
 
 describe("resolveTarget", () => {
-  let page: Page;
+  let browser: Browser | undefined;
+  let context: BrowserContext | undefined;
+  let page: Page | undefined;
 
   beforeEach(async () => {
-    const browser = await chromium.launch({ headless: true });
-    const context = await browser.newContext();
+    browser = await chromium.launch({ headless: true });
+    context = await browser.newContext();
     page = await context.newPage();
-    const appUrl = pathToFileURL(
-      path.join(__dirname, "..", "test-app", "index.html"),
-    ).toString();
-    await page.goto(appUrl);
   });
 
   afterEach(async () => {
-    await page.context().browser()?.close();
+    await context?.close();
+    await browser?.close();
+    context = undefined;
+    browser = undefined;
+    page = undefined;
   });
 
   it("resolves the first unique rung", async () => {

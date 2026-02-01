@@ -1,12 +1,13 @@
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
-Push-Location orchestrator
+Push-Location web-runner
 npm install
+npx playwright install --with-deps
 npm test
 Pop-Location
 
-Push-Location web-runner
+Push-Location orchestrator
 npm install
 npm test
 Pop-Location

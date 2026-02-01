@@ -40,4 +40,25 @@ export class ArtifactManager {
       createdAt,
     };
   }
+
+  async loadRunFolder(runDir: string, runId: string): Promise<RunArtifacts> {
+    const createdAt = new Date().toISOString();
+    const resolvedRunDir = path.resolve(runDir);
+    const evidenceDir = path.join(resolvedRunDir, "evidence");
+    const logsDir = path.join(resolvedRunDir, "logs");
+    const reviewDir = path.join(resolvedRunDir, "review");
+
+    await fs.mkdir(evidenceDir, { recursive: true });
+    await fs.mkdir(logsDir, { recursive: true });
+    await fs.mkdir(reviewDir, { recursive: true });
+
+    return {
+      runId,
+      runDir: resolvedRunDir,
+      evidenceDir,
+      logsDir,
+      reviewDir,
+      createdAt,
+    };
+  }
 }

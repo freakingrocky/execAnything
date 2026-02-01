@@ -2,9 +2,9 @@ import fs from "fs";
 import path from "path";
 import { parseArgs } from "./args";
 import { loadConfig } from "../config/defaults";
-import { ArtifactManager } from "../runtime/artifacts";
+import { ArtifactManager, RunArtifacts } from "../runtime/artifacts";
 import { RuntimeEngine } from "../runtime/engine";
-import { InMemoryCheckpointStore } from "../runtime/checkpoints";
+import { FileCheckpointStore } from "../runtime/checkpoints";
 import { DesktopClient } from "../rpc/desktopClient";
 import { WorkflowDefinition } from "../types/workflow";
 
@@ -32,19 +32,45 @@ async function main(): Promise<void> {
   const inputs = readJsonFile<Record<string, unknown>>(inputsPath);
 
   const artifactManager = new ArtifactManager(outDir);
-  const runArtifacts = await artifactManager.createRunFolder(workflow.id);
+  const resume = Boolean(args.resume);
+
+  let runArtifacts: RunArtifacts;
+  let checkpointStore: FileCheckpointStore;
+
+  if (resume) {
+    const runDir = path.resolve(outDir);
+    checkpointStore = new FileCheckpointStore(runDir);
+    const checkpoint = await checkpointStore.readCheckpoint();
+    if (!checkpoint) {
+      throw new Error(`No checkpoint found in ${runDir}`);
+    }
+    runArtifacts = await artifactManager.loadRunFolder(runDir, checkpoint.run_id);
+  } else {
+    runArtifacts = await artifactManager.createRunFolder(workflow.id);
+    checkpointStore = new FileCheckpointStore(runArtifacts.runDir);
+  }
+
   const desktopClient = new DesktopClient(config.desktopRunner);
   await desktopClient.start();
   await desktopClient.ping();
-
-  const engine = new RuntimeEngine({
-    checkpointStore: new InMemoryCheckpointStore(),
-    artifacts: runArtifacts,
-    defaultTimeoutMs: config.runtime.defaultTimeoutMs,
+  await desktopClient.runBegin({
+    run_id: runArtifacts.runId,
+    artifact_dir: runArtifacts.evidenceDir,
   });
 
-  await engine.runWorkflow(workflow, inputs, desktopClient);
-  await desktopClient.stop();
+  const engine = new RuntimeEngine({
+    checkpointStore,
+    artifacts: runArtifacts,
+    defaultTimeoutMs: config.runtime.defaultTimeoutMs,
+    resume,
+  });
+
+  try {
+    await engine.runWorkflow(workflow, inputs, desktopClient);
+  } finally {
+    await desktopClient.runEnd({ run_id: runArtifacts.runId });
+    await desktopClient.stop();
+  }
 }
 
 main().catch((error) => {

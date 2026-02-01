@@ -26,17 +26,24 @@ def set_value(
         )
         trace.match_attempts = match_attempts
         trace.resolved = resolved
-        adapter.set_value(element_handle, params["value"])
+        try:
+            adapter.set_value(element_handle, params["value"])
+        except Exception:
+            adapter.paste_text(element_handle, params["value"])
         trace.capture_after(capture)
         trace.ok = True
         return trace.finish()
     except DesktopRunnerError as exc:
+        if exc.data and "match_attempts" in exc.data:
+            trace.match_attempts = exc.data["match_attempts"]
         trace.error = exc.message
+        trace.error_code = exc.code
         trace.capture_after(capture)
         exc.data = exc.data or {}
         exc.data["trace"] = trace.finish()
         raise
     except Exception as exc:
         trace.error = str(exc)
+        trace.error_code = ActionFailed().code
         trace.capture_after(capture)
         raise ActionFailed(data={"trace": trace.finish()}) from exc

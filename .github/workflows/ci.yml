@@ -45,23 +45,22 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-          cache-dependency-path: desktop-runner/pyproject.toml
+          cache-dependency-path: |
+            desktop-runner/pyproject.toml
+            recorder-desktop/pyproject.toml
 
-      - name: Install + test desktop-runner
+      - name: Install + test desktop-runner + recorder-desktop
         shell: pwsh
         run: |
           Set-StrictMode -Version Latest
           $ErrorActionPreference = "Stop"
 
-          Push-Location desktop-runner
-
           python -m venv .venv
           .\.venv\Scripts\python.exe -m pip install -U pip
-          .\.venv\Scripts\python.exe -m pip install -e .
+          .\.venv\Scripts\python.exe -m pip install -e desktop-runner
+          .\.venv\Scripts\python.exe -m pip install -e recorder-desktop
           .\.venv\Scripts\python.exe -m pip install pytest
-          .\.venv\Scripts\python.exe -m pytest -q
-
-          Pop-Location
+          .\.venv\Scripts\python.exe -m pytest -q desktop-runner/tests recorder-desktop/tests
 
       # Optional: keep test output if something fails
       - name: Upload test artifacts (if failure)

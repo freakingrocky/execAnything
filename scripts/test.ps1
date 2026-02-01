@@ -6,17 +6,16 @@ npm install
 npm test
 Pop-Location
 
-Push-Location desktop-runner
-
-$venvPy = Join-Path (Get-Location) ".venv\Scripts\python.exe"
+$repoRoot = Get-Location
+$venvDir = Join-Path $repoRoot ".venv"
+$venvPy = Join-Path $venvDir "Scripts\python.exe"
 
 if (-not (Test-Path $venvPy)) {
-  py -3.11 -m venv .venv
+  py -3.11 -m venv $venvDir
 }
 
 & $venvPy -m pip install -U pip
-& $venvPy -m pip install -e .
+& $venvPy -m pip install -e "${repoRoot}\desktop-runner"
+& $venvPy -m pip install -e "${repoRoot}\recorder-desktop"
 & $venvPy -m pip install pytest
-& $venvPy -m pytest -q
-
-Pop-Location
+& $venvPy -m pytest -q "${repoRoot}\desktop-runner\tests" "${repoRoot}\recorder-desktop\tests"

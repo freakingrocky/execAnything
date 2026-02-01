@@ -67,6 +67,9 @@ export interface StepTrace {
   before_screenshot_path?: string;
   after_screenshot_path?: string;
   error?: string;
+  error_code?: number;
+  failed?: Array<{ index: number; kind: string; message: string }>;
+  value?: string;
 }
 
 export interface JsonRpcErrorPayload {
@@ -150,6 +153,16 @@ export class DesktopClient {
     return result as DesktopRunnerCapabilities;
   }
 
+  async runBegin(params: { run_id: string; artifact_dir: string; correlation_id?: string }): Promise<{ ok: boolean }> {
+    const result = await this.sendRequest("run.begin", params);
+    return result as { ok: boolean };
+  }
+
+  async runEnd(params: { run_id: string }): Promise<{ ok: boolean }> {
+    const result = await this.sendRequest("run.end", params);
+    return result as { ok: boolean };
+  }
+
   async resolveTarget(params: {
     run_id: string;
     step_id: string;
@@ -205,9 +218,9 @@ export class DesktopClient {
     run_id: string;
     step_id: string;
     assertions: Array<Record<string, unknown>>;
-  }): Promise<{ ok: boolean; failed: Array<{ index: number; kind: string; message: string }> }> {
+  }): Promise<StepTrace> {
     const result = await this.sendRequest("assert.check", params);
-    return result as { ok: boolean; failed: Array<{ index: number; kind: string; message: string }> };
+    return result as StepTrace;
   }
 
   async extractGetValue(params: {
@@ -215,18 +228,19 @@ export class DesktopClient {
     step_id: string;
     target: DesktopTarget;
     timeout_ms?: number;
-  }): Promise<{ value: string }> {
+  }): Promise<StepTrace> {
     const result = await this.sendRequest("extract.getValue", params);
-    return result as { value: string };
+    return result as StepTrace;
   }
 
   async screenshot(params: {
     run_id: string;
+    step_id: string;
     name: string;
     mode?: "active_window" | "screen";
-  }): Promise<{ path: string }> {
+  }): Promise<StepTrace> {
     const result = await this.sendRequest("artifact.screenshot", params);
-    return result as { path: string };
+    return result as StepTrace;
   }
 
   private async sendRequest(method: string, params: Record<string, unknown>): Promise<unknown> {

@@ -4,6 +4,7 @@ export interface CliArgs {
   out?: string;
   config?: string;
   recordings?: string[];
+  resume?: boolean;
 }
 
 export function parseArgs(argv: string[]): CliArgs {
@@ -28,6 +29,12 @@ export function parseArgs(argv: string[]): CliArgs {
       if (values.length > 0) {
         args.recordings = values;
       }
+      continue;
+    }
+
+    if (key === "resume") {
+      args.resume = true;
+      index += 1;
       continue;
     }
 

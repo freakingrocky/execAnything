@@ -11,8 +11,9 @@ from desktop_runner.actions.click import click
 from desktop_runner.actions.extract import get_value
 from desktop_runner.actions.paste_text import paste_text
 from desktop_runner.actions.set_value import set_value
+from desktop_runner.actions.step_trace import StepTraceBuilder
 from desktop_runner.assertions.check import check_assertions
-from desktop_runner.errors import DesktopRunnerError, ScopeNotFound
+from desktop_runner.errors import ActionFailed, DesktopRunnerError, ScopeNotFound
 from desktop_runner.runtime.run_state import clear_run_state, get_run_state, set_run_state
 from desktop_runner.selector.resolve import resolve_ladder
 from desktop_runner.artifacts.screenshots import capture_screenshot
@@ -150,14 +151,29 @@ def handle_extract_value(params: Dict[str, Any]) -> Dict[str, Any]:
 
 def handle_artifact_screenshot(params: Dict[str, Any]) -> Dict[str, Any]:
     run_id = params.get("run_id")
+    step_id = params.get("step_id")
     name = params.get("name")
     mode = params.get("mode", "active_window")
-    if not isinstance(run_id, str) or not isinstance(name, str):
-        raise JsonRpcError(ERROR_INVALID_PARAMS, "run_id and name are required")
+    if not isinstance(run_id, str) or not isinstance(step_id, str) or not isinstance(name, str):
+        raise JsonRpcError(ERROR_INVALID_PARAMS, "run_id, step_id, and name are required")
     state = get_run_state(run_id)
     base_dir = state.artifact_dir if state else None
-    path = capture_screenshot(name, base_dir=base_dir, mode=mode)
-    return {"path": path}
+    trace = StepTraceBuilder(run_id=run_id, step_id=step_id)
+    try:
+        path = capture_screenshot(name, base_dir=base_dir, mode=mode)
+        trace.after_screenshot_path = path
+        trace.ok = True
+        return trace.finish()
+    except DesktopRunnerError as exc:
+        trace.error = exc.message
+        trace.error_code = exc.code
+        exc.data = exc.data or {}
+        exc.data["trace"] = trace.finish()
+        raise
+    except Exception as exc:
+        trace.error = str(exc)
+        trace.error_code = ActionFailed().code
+        raise ActionFailed(data={"trace": trace.finish()}) from exc
 
 
 def handle_request(payload: Any) -> Optional[Dict[str, Any]]:

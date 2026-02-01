@@ -69,3 +69,6 @@ def test_assert_check_fails_for_visibility(monkeypatch):
         )
 
     assert exc.value.code == 1004
+    trace = exc.value.data["trace"]
+    assert trace["error_code"] == 1004
+    assert trace["failed"][0]["kind"] == "desktop_element_visible"

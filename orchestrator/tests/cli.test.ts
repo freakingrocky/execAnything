@@ -13,6 +13,12 @@ describe("cli args", () => {
     expect(args.out).toBe("out");
   });
 
+  it("parses resume flag", () => {
+    const args = parseArgs(["--resume", "--workflow", "workflow.json"]);
+    expect(args.resume).toBe(true);
+    expect(args.workflow).toBe("workflow.json");
+  });
+
   it("loads config overrides from file", () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "orchestrator-config-"));
     const configPath = path.join(tempDir, "config.json");

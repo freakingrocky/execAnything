@@ -6,6 +6,21 @@ npm install
 npm test
 Pop-Location
 
+Push-Location web-runner
+npm install
+npm test
+Pop-Location
+
+Push-Location synthesizer
+npm install
+npm test
+Pop-Location
+
+Push-Location packages/shared
+npm install
+npm test
+Pop-Location
+
 $repoRoot = Get-Location
 $venvDir = Join-Path $repoRoot ".venv"
 $venvPy = Join-Path $venvDir "Scripts\python.exe"

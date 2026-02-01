@@ -1,5 +1,7 @@
 # AI-Minimal Dual-Mode RPA (Windows-only)
 
+![CI](https://github.com/ORG/REPO/actions/workflows/ci.yml/badge.svg?branch=main) <!-- Replace ORG/REPO with your GitHub org/repo -->
+
 This repository contains a **deterministic, verification-first automation system** for enterprise environments.
 
 It automates **both web and Windows desktop applications**, synthesizes **robust selectors from multiple recordings**, and **never uses AI at runtime**.

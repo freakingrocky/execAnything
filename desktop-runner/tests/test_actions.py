@@ -1,6 +1,9 @@
+import pytest
+
 from desktop_runner.actions.click import click
 from desktop_runner.actions.paste_text import paste_text
 from desktop_runner.actions.set_value import set_value
+from desktop_runner.errors import ActionFailed
 
 
 class FakeAdapter:
@@ -86,3 +89,19 @@ def test_action_set_value_falls_back_to_paste(monkeypatch):
 
     assert result["ok"] is True
     assert adapter.pasted == ("handle", "fallback")
+
+
+def test_action_click_failure_returns_trace(monkeypatch):
+    adapter = FakeAdapter()
+
+    def fake_resolve(*_, **__):
+        raise ActionFailed("failed")
+
+    monkeypatch.setattr("desktop_runner.actions.click.resolve_ladder", fake_resolve)
+
+    with pytest.raises(ActionFailed) as exc:
+        click({"run_id": "run", "step_id": "step", "target": {"ladder": []}}, adapter=adapter)
+
+    trace = exc.value.data["trace"]
+    assert trace["ok"] is False
+    assert trace["error_code"] == ActionFailed().code

@@ -86,18 +86,36 @@ def handle_capabilities(_: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def handle_focus(params: Dict[str, Any]) -> Dict[str, Any]:
+def handle_window_focus(params: Dict[str, Any]) -> Dict[str, Any]:
+    run_id = params.get("run_id")
+    step_id = params.get("step_id")
+    if not isinstance(run_id, str) or not isinstance(step_id, str):
+        raise JsonRpcError(ERROR_INVALID_PARAMS, "run_id and step_id are required")
+
     scope = params.get("scope")
     if not isinstance(scope, dict):
         raise JsonRpcError(ERROR_INVALID_PARAMS, "scope is required")
 
-    if os.name != "nt":
-        raise JsonRpcError(ERROR_SCOPE_NOT_FOUND, "Window scope not found")
+    trace = StepTraceBuilder(run_id=run_id, step_id=step_id)
+    try:
+        if os.name != "nt":
+            raise ScopeNotFound()
 
-    descriptor = focus_window(scope)
-    if descriptor is None:
-        raise ScopeNotFound()
-    return {"ok": True, "window": descriptor}
+        descriptor = focus_window(scope)
+        if descriptor is None:
+            raise ScopeNotFound()
+        trace.ok = True
+        return {"trace": trace.finish(), "window": descriptor}
+    except DesktopRunnerError as exc:
+        trace.error = exc.message
+        trace.error_code = exc.code
+        exc.data = exc.data or {}
+        exc.data["trace"] = trace.finish()
+        raise
+    except Exception as exc:
+        trace.error = str(exc)
+        trace.error_code = ActionFailed().code
+        raise ActionFailed(data={"trace": trace.finish()}) from exc
 
 
 def handle_run_begin(params: Dict[str, Any]) -> Dict[str, Any]:
@@ -191,7 +209,7 @@ def handle_request(payload: Any) -> Optional[Dict[str, Any]]:
             "system.getCapabilities": handle_capabilities,
             "run.begin": handle_run_begin,
             "run.end": handle_run_end,
-            "window.focus": handle_focus,
+            "window.focus": handle_window_focus,
             "target.resolve": handle_target_resolve,
             "action.click": handle_action_click,
             "action.pasteText": handle_action_paste,

@@ -1,0 +1,46 @@
+import path from "path";
+import { pathToFileURL } from "url";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { chromium, Page } from "playwright";
+import { resolveTarget } from "../src/selector/resolve";
+import { WebTarget } from "../src/types";
+
+describe("resolveTarget", () => {
+  let page: Page;
+
+  beforeEach(async () => {
+    const browser = await chromium.launch({ headless: true });
+    const context = await browser.newContext();
+    page = await context.newPage();
+    const appUrl = pathToFileURL(
+      path.join(__dirname, "..", "test-app", "index.html"),
+    ).toString();
+    await page.goto(appUrl);
+  });
+
+  afterEach(async () => {
+    await page.context().browser()?.close();
+  });
+
+  it("resolves the first unique rung", async () => {
+    const target: WebTarget = {
+      ladder: [
+        {
+          kind: "web_css",
+          confidence: 0.9,
+          selector: { css: "#submit-btn" },
+        },
+        {
+          kind: "web_css",
+          confidence: 0.1,
+          selector: { css: "button" },
+        },
+      ],
+    };
+
+    const result = await resolveTarget(page, target);
+    expect(result.resolved.kind).toBe("web_css");
+    expect(result.resolved.selector).toEqual({ css: "#submit-btn" });
+    expect(result.match_attempts[0].matched_count).toBe(1);
+  });
+});

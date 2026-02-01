@@ -1,6 +1,6 @@
 # AI-Minimal Dual-Mode RPA (Enterprise, Windows-only)
 
-Tests: ![CI](https://github.com/<OWNER>/<REPO>/actions/workflows/ci.yml/badge.svg)
+Tests: ![CI](https://github.com/freakingrocky/execAnything/actions/workflows/ci.yml/badge.svg)
 
 This repository contains a **deterministic, verification-first automation system** for enterprise environments.
 

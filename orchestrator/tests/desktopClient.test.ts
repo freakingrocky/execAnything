@@ -115,7 +115,10 @@ describe("DesktopClient", () => {
       target: { ladder: [{ kind: "uia", confidence: 1, selector: {} }] },
     });
     const resolveLine = await reader.nextLine();
-    const resolveRequest = JSON.parse(resolveLine) as { id: number; method: string };
+    const resolveRequest = JSON.parse(resolveLine) as {
+      id: number;
+      method: string;
+    };
     stdout.write(
       JSON.stringify({
         jsonrpc: "2.0",
@@ -135,7 +138,10 @@ describe("DesktopClient", () => {
       assertions: [{ kind: "desktop_element_exists" }],
     });
     const assertLine = await reader.nextLine();
-    const assertRequest = JSON.parse(assertLine) as { id: number; method: string };
+    const assertRequest = JSON.parse(assertLine) as {
+      id: number;
+      method: string;
+    };
     stdout.write(
       JSON.stringify({
         jsonrpc: "2.0",
@@ -145,6 +151,8 @@ describe("DesktopClient", () => {
     );
     const assertResult = await assertPromise;
     expect(assertResult.ok).toBe(true);
+    expect(resolveRequest.method).toBe("target.resolve");
+    expect(assertRequest.method).toBe("assert.check");
 
     await client.stop();
   });

@@ -8,21 +8,21 @@
 
 [X] Step 5: Add shared RPC contract file `packages/shared/src/rpc/desktop.rpc.json`
 
-[] (CDX) Step 6: Implement orchestrator CLI skeleton in `packages/orchestrator/src/cli/` (`run.ts`, `verify.ts`, `compile.ts`) with config loading
+[X] (CDX) Step 6: Implement orchestrator CLI skeleton in `packages/orchestrator/src/cli/` (`run.ts`, `verify.ts`, `compile.ts`) with config loading
 
-[] (CDX) Step 7: Implement orchestrator runtime engine skeleton (`engine.ts`) with step scheduling, timeouts, and checkpointing interface
+[X] (CDX) Step 7: Implement orchestrator runtime engine skeleton (`engine.ts`) with step scheduling, timeouts, and checkpointing interface
 
-[] (CDX) Step 8: Implement artifact manager in orchestrator (`artifacts.ts`) to create run folders, store screenshots, match traces, and logs
+[X] (CDX) Step 8: Implement artifact manager in orchestrator (`artifacts.ts`) to create run folders, store screenshots, match traces, and logs
 
-[] (CDX) Step 9: Implement JSON-RPC stdio client in orchestrator (`desktopClient.ts`) to spawn desktop-runner and call `system.ping`
+[X] (CDX) Step 9: Implement JSON-RPC stdio client in orchestrator (`desktopClient.ts`) to spawn desktop-runner and call `system.ping`
 
-[] (CDX) Step 10: Implement Python desktop-runner JSON-RPC server skeleton (`desktop_runner/server.py`) with method dispatch and error mapping
+[X] (CDX) Step 10: Implement Python desktop-runner JSON-RPC server skeleton (`desktop_runner/server.py`) with method dispatch and error mapping
 
-[] (CDX) Step 11: Implement `system.ping` and `system.getCapabilities` in desktop-runner
+[X] (CDX) Step 11: Implement `system.ping` and `system.getCapabilities` in desktop-runner
 
-[] (CDX) Step 12: Implement desktop window focusing (`window.focus`) using Win32 + UIA scoping, return window descriptor
+[X] (CDX) Step 12: Implement desktop window focusing (`window.focus`) using Win32 + UIA scoping, return window descriptor
 
-[] (CDX) Step 13: Implement desktop selector ladder resolution (`target.resolve`) returning match attempts + resolved element descriptor
+[X] (CDX) Step 13: Implement desktop selector ladder resolution (`target.resolve`) returning match attempts + resolved element descriptor
 
 [] (CDX) Step 14: Implement desktop action: click (`action.click`) with before/after screenshot capture and StepTrace return
 

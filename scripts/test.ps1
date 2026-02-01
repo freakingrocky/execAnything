@@ -7,8 +7,16 @@ npm test
 Pop-Location
 
 Push-Location desktop-runner
-python -m pip install --upgrade pip
-python -m pip install -e .
-python -m pip install pytest
-python -m pytest
+
+$venvPy = Join-Path (Get-Location) ".venv\Scripts\python.exe"
+
+if (-not (Test-Path $venvPy)) {
+  py -3.11 -m venv .venv
+}
+
+& $venvPy -m pip install -U pip
+& $venvPy -m pip install -e .
+& $venvPy -m pip install pytest
+& $venvPy -m pytest -q
+
 Pop-Location

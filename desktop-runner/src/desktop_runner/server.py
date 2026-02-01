@@ -7,6 +7,16 @@ import sys
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional
 
+from desktop_runner.actions.click import click
+from desktop_runner.actions.extract import get_value
+from desktop_runner.actions.paste_text import paste_text
+from desktop_runner.actions.set_value import set_value
+from desktop_runner.assertions.check import check_assertions
+from desktop_runner.errors import DesktopRunnerError, ScopeNotFound
+from desktop_runner.runtime.run_state import clear_run_state, get_run_state, set_run_state
+from desktop_runner.selector.resolve import resolve_ladder
+from desktop_runner.artifacts.screenshots import capture_screenshot
+
 JSONRPC_VERSION = "2.0"
 SERVICE_NAME = "desktop-runner"
 SERVICE_VERSION = "0.1"
@@ -85,8 +95,69 @@ def handle_focus(params: Dict[str, Any]) -> Dict[str, Any]:
 
     descriptor = focus_window(scope)
     if descriptor is None:
-        raise JsonRpcError(ERROR_SCOPE_NOT_FOUND, "Window scope not found")
+        raise ScopeNotFound()
     return {"ok": True, "window": descriptor}
+
+
+def handle_run_begin(params: Dict[str, Any]) -> Dict[str, Any]:
+    run_id = params.get("run_id")
+    artifact_dir = params.get("artifact_dir")
+    if not isinstance(run_id, str) or not isinstance(artifact_dir, str):
+        raise JsonRpcError(ERROR_INVALID_PARAMS, "run_id and artifact_dir are required")
+    set_run_state(run_id, artifact_dir)
+    return {"ok": True}
+
+
+def handle_run_end(params: Dict[str, Any]) -> Dict[str, Any]:
+    run_id = params.get("run_id")
+    if not isinstance(run_id, str):
+        raise JsonRpcError(ERROR_INVALID_PARAMS, "run_id is required")
+    clear_run_state(run_id)
+    return {"ok": True}
+
+
+def handle_target_resolve(params: Dict[str, Any]) -> Dict[str, Any]:
+    target = params.get("target")
+    if not isinstance(target, dict):
+        raise JsonRpcError(ERROR_INVALID_PARAMS, "target is required")
+    resolved, match_attempts, _ = resolve_ladder(
+        target,
+        retry=params.get("retry"),
+        timeout_ms=params.get("timeout_ms"),
+    )
+    return {"resolved": resolved, "match_attempts": match_attempts}
+
+
+def handle_action_click(params: Dict[str, Any]) -> Dict[str, Any]:
+    return click(params)
+
+
+def handle_action_paste(params: Dict[str, Any]) -> Dict[str, Any]:
+    return paste_text(params)
+
+
+def handle_action_set_value(params: Dict[str, Any]) -> Dict[str, Any]:
+    return set_value(params)
+
+
+def handle_assert_check(params: Dict[str, Any]) -> Dict[str, Any]:
+    return check_assertions(params)
+
+
+def handle_extract_value(params: Dict[str, Any]) -> Dict[str, Any]:
+    return get_value(params)
+
+
+def handle_artifact_screenshot(params: Dict[str, Any]) -> Dict[str, Any]:
+    run_id = params.get("run_id")
+    name = params.get("name")
+    mode = params.get("mode", "active_window")
+    if not isinstance(run_id, str) or not isinstance(name, str):
+        raise JsonRpcError(ERROR_INVALID_PARAMS, "run_id and name are required")
+    state = get_run_state(run_id)
+    base_dir = state.artifact_dir if state else None
+    path = capture_screenshot(name, base_dir=base_dir, mode=mode)
+    return {"path": path}
 
 
 def handle_request(payload: Any) -> Optional[Dict[str, Any]]:
@@ -102,7 +173,16 @@ def handle_request(payload: Any) -> Optional[Dict[str, Any]]:
         handlers: Dict[str, Callable[[Dict[str, Any]], Dict[str, Any]]] = {
             "system.ping": handle_ping,
             "system.getCapabilities": handle_capabilities,
+            "run.begin": handle_run_begin,
+            "run.end": handle_run_end,
             "window.focus": handle_focus,
+            "target.resolve": handle_target_resolve,
+            "action.click": handle_action_click,
+            "action.pasteText": handle_action_paste,
+            "action.setValue": handle_action_set_value,
+            "assert.check": handle_assert_check,
+            "extract.getValue": handle_extract_value,
+            "artifact.screenshot": handle_artifact_screenshot,
         }
 
         handler = handlers.get(method)
@@ -111,6 +191,8 @@ def handle_request(payload: Any) -> Optional[Dict[str, Any]]:
 
         result = handler(params)
         return make_result_response(request_id, result)
+    except DesktopRunnerError as exc:
+        return make_error_response(request_id, JsonRpcError(exc.code, exc.message, exc.data))
     except JsonRpcError as exc:
         return make_error_response(request_id, exc)
     except Exception as exc:  # pragma: no cover - last resort

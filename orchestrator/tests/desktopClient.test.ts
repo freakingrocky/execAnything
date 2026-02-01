@@ -74,4 +74,59 @@ describe("DesktopClient", () => {
 
     await client.stop();
   });
+
+  it("sends resolve and assert requests", async () => {
+    const { fakeProcess, stdin, stdout } = createFakeProcess();
+    const client = new DesktopClient(
+      {
+        pythonExecutable: "python",
+        module: "desktop_runner.server",
+        requestTimeoutMs: 1000,
+        spawnTimeoutMs: 0,
+        pythonPath: ["desktop-runner/src"],
+      },
+      () => fakeProcess,
+    );
+
+    await client.start();
+
+    const resolvePromise = client.resolveTarget({
+      run_id: "run_1",
+      step_id: "step_1",
+      target: { ladder: [{ kind: "uia", confidence: 1, selector: {} }] },
+    });
+    const resolveLine = await readLine(stdin);
+    const resolveRequest = JSON.parse(resolveLine) as { id: number; method: string };
+    stdout.write(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: resolveRequest.id,
+        result: {
+          resolved: { rung_index: 0, kind: "uia", element: { name: "Edit" } },
+          match_attempts: [],
+        },
+      }) + "\n",
+    );
+    const resolveResult = await resolvePromise;
+    expect(resolveResult.resolved.kind).toBe("uia");
+
+    const assertPromise = client.assertCheck({
+      run_id: "run_1",
+      step_id: "step_2",
+      assertions: [{ kind: "desktop_element_exists" }],
+    });
+    const assertLine = await readLine(stdin);
+    const assertRequest = JSON.parse(assertLine) as { id: number; method: string };
+    stdout.write(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: assertRequest.id,
+        result: { ok: true, failed: [] },
+      }) + "\n",
+    );
+    const assertResult = await assertPromise;
+    expect(assertResult.ok).toBe(true);
+
+    await client.stop();
+  });
 });

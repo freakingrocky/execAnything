@@ -19,6 +19,56 @@ export interface DesktopRunnerCapabilities {
   screenshots: boolean;
 }
 
+export interface RetryPolicy {
+  attempts: number;
+  wait_ms: number;
+  backoff?: "none" | "linear" | "exponential";
+}
+
+export interface TargetRung {
+  kind: "uia" | "uia_near_label" | "uia_path" | "ocr_anchor" | "coords";
+  confidence: number;
+  selector: Record<string, unknown>;
+  notes?: string;
+}
+
+export interface DesktopTarget {
+  ladder: TargetRung[];
+  scope?: {
+    process_name?: string;
+    window_title_contains?: string;
+    window_class?: string;
+  };
+}
+
+export interface MatchAttempt {
+  rung_index: number;
+  kind: string;
+  matched_count: number;
+  duration_ms: number;
+  ok: boolean;
+  error?: string;
+}
+
+export interface ResolvedElement {
+  rung_index: number;
+  kind: string;
+  element: Record<string, unknown>;
+}
+
+export interface StepTrace {
+  run_id: string;
+  step_id: string;
+  started_at: string;
+  ended_at: string;
+  ok: boolean;
+  match_attempts: MatchAttempt[];
+  resolved?: ResolvedElement;
+  before_screenshot_path?: string;
+  after_screenshot_path?: string;
+  error?: string;
+}
+
 export interface JsonRpcErrorPayload {
   code: number;
   message: string;
@@ -98,6 +148,85 @@ export class DesktopClient {
   async getCapabilities(): Promise<DesktopRunnerCapabilities> {
     const result = await this.sendRequest("system.getCapabilities", {});
     return result as DesktopRunnerCapabilities;
+  }
+
+  async resolveTarget(params: {
+    run_id: string;
+    step_id: string;
+    target: DesktopTarget;
+    retry?: RetryPolicy;
+    timeout_ms?: number;
+  }): Promise<{ resolved: ResolvedElement; match_attempts: MatchAttempt[] }> {
+    const result = await this.sendRequest("target.resolve", params);
+    return result as { resolved: ResolvedElement; match_attempts: MatchAttempt[] };
+  }
+
+  async click(params: {
+    run_id: string;
+    step_id: string;
+    target: DesktopTarget;
+    button?: "left" | "right" | "middle";
+    clicks?: number;
+    retry?: RetryPolicy;
+    timeout_ms?: number;
+    capture_screenshots?: boolean;
+  }): Promise<StepTrace> {
+    const result = await this.sendRequest("action.click", params);
+    return result as StepTrace;
+  }
+
+  async pasteText(params: {
+    run_id: string;
+    step_id: string;
+    target: DesktopTarget;
+    text: string;
+    retry?: RetryPolicy;
+    timeout_ms?: number;
+    capture_screenshots?: boolean;
+  }): Promise<StepTrace> {
+    const result = await this.sendRequest("action.pasteText", params);
+    return result as StepTrace;
+  }
+
+  async setValue(params: {
+    run_id: string;
+    step_id: string;
+    target: DesktopTarget;
+    value: string;
+    retry?: RetryPolicy;
+    timeout_ms?: number;
+    capture_screenshots?: boolean;
+  }): Promise<StepTrace> {
+    const result = await this.sendRequest("action.setValue", params);
+    return result as StepTrace;
+  }
+
+  async assertCheck(params: {
+    run_id: string;
+    step_id: string;
+    assertions: Array<Record<string, unknown>>;
+  }): Promise<{ ok: boolean; failed: Array<{ index: number; kind: string; message: string }> }> {
+    const result = await this.sendRequest("assert.check", params);
+    return result as { ok: boolean; failed: Array<{ index: number; kind: string; message: string }> };
+  }
+
+  async extractGetValue(params: {
+    run_id: string;
+    step_id: string;
+    target: DesktopTarget;
+    timeout_ms?: number;
+  }): Promise<{ value: string }> {
+    const result = await this.sendRequest("extract.getValue", params);
+    return result as { value: string };
+  }
+
+  async screenshot(params: {
+    run_id: string;
+    name: string;
+    mode?: "active_window" | "screen";
+  }): Promise<{ path: string }> {
+    const result = await this.sendRequest("artifact.screenshot", params);
+    return result as { path: string };
   }
 
   private async sendRequest(method: string, params: Record<string, unknown>): Promise<unknown> {

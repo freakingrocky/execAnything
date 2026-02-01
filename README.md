@@ -1,4 +1,4 @@
-# AI-Minimal Dual-Mode RPA (Windows-only) ![CI](https://github.com/freakingrocky/execAnything/actions/workflows/ci.yml/badge.svg)
+# AI-Minimal Dual-Mode RPA (Windows-only)
 
 This repository contains a **deterministic, verification-first automation system** for enterprise environments.
 

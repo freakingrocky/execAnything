@@ -24,25 +24,25 @@
 
 [X] (CDX) Step 13: Implement desktop selector ladder resolution (`target.resolve`) returning match attempts + resolved element descriptor
 
-[\u0058] (CDX) Step 14: Implement desktop action: click (`action.click`) with before/after screenshot capture and StepTrace return
+[X] (CDX) Step 14: Implement desktop action: click (`action.click`) with before/after screenshot capture and StepTrace return
 
-[\u0058] (CDX) Step 15: Implement desktop action: paste text (`action.pasteText`) and StepTrace return
+[X] (CDX) Step 15: Implement desktop action: paste text (`action.pasteText`) and StepTrace return
 
-[\u0058] (CDX) Step 16: Implement desktop action: set value via ValuePattern (`action.setValue`) and StepTrace return
+[X] (CDX) Step 16: Implement desktop action: set value via ValuePattern (`action.setValue`) and StepTrace return
 
-[\u0058] (CDX) Step 17: Implement desktop assertions (`assert.check`) for required kinds (window active, element exists/visible, focused control type, value equals/contains, not)
+[X] (CDX) Step 17: Implement desktop assertions (`assert.check`) for required kinds (window active, element exists/visible, focused control type, value equals/contains, not)
 
-[\u0058] (CDX) Step 18: Implement desktop extract (`extract.getValue`) to read text/value from resolved element
+[X] (CDX) Step 18: Implement desktop extract (`extract.getValue`) to read text/value from resolved element
 
-[\u0058] (CDX) Step 19: Implement desktop screenshot endpoint (`artifact.screenshot`) for active window and screen
+[X] (CDX) Step 19: Implement desktop screenshot endpoint (`artifact.screenshot`) for active window and screen
 
 [] (CDX) Step 20: Add Playwright web-runner package skeleton with actions (click/fill/select/wait/assert/extract) and basic selector ladder resolution
 
 [] (CDX) Step 21: Add orchestrator web client wrapper (in-proc library) and a minimal `system.ping` equivalent for web-runner
 
-[\u0058] (CDX) Step 22: Implement orchestrator `run` mode: execute workflow steps across web + desktop drivers with pre/post asserts and retries
+[X] (CDX) Step 22: Implement orchestrator `run` mode: execute workflow steps across web + desktop drivers with pre/post asserts and retries
 
-[\u0058] (CDX) Step 23: Implement workflow checkpointing (write last successful step id + state) and resume logic
+[X] (CDX) Step 23: Implement workflow checkpointing (write last successful step id + state) and resume logic
 
 [] (CDX) Step 24: Create first sample workflow in `workflows/samples/` (simple web-only) and a Playwright smoke test
 
@@ -50,9 +50,9 @@
 
 [] (CDX) Step 26: Implement recorder-web `recording.jsonl` output with DOM snapshot fragments, selector candidates, and screenshots
 
-[\u0058] (CDX) Step 27: Implement recorder-desktop `recording.jsonl` output with UIA snapshot under cursor, neighborhood, and screenshots
+[X] (CDX) Step 27: Implement recorder-desktop `recording.jsonl` output with UIA snapshot under cursor, neighborhood, and screenshots
 
-[\u0058] (CDX) Step 28: Define recording format v0 (JSONL event types) in `docs/` and add schema/validator if needed
+[X] (CDX) Step 28: Define recording format v0 (JSONL event types) in `docs/` and add schema/validator if needed
 
 [] (CDX) Step 29: Implement synthesizer v0 candidate generation (web + desktop) from recordings
 

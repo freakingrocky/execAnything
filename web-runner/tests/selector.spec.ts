@@ -15,7 +15,7 @@ describe("resolveTarget", () => {
     context = await browser.newContext();
     page = await context.newPage();
 
-    const __filename = new URL(import.meta.url).pathname;
+    const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
     const fixturePath = path.join(__dirname, "fixtures", "selector.html");
     await page.goto(pathToFileURL(fixturePath).toString());

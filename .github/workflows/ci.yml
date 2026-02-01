@@ -32,6 +32,8 @@ jobs:
             web-runner/package-lock.json
             synthesizer/package-lock.json
             packages/shared/package-lock.json
+            apps/ui-server/package-lock.json
+            apps/ui/package-lock.json
 
       - name: Install Playwright browsers
         shell: pwsh
@@ -40,7 +42,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           Push-Location web-runner
           npm ci
-          npx playwright install --with-deps
+          npx playwright install --with-deps chromium
           npm test
           Pop-Location
 
@@ -72,6 +74,27 @@ jobs:
           Push-Location packages/shared
           npm ci
           npm test
+          Pop-Location
+
+      - name: Install + test ui-server
+        shell: pwsh
+        run: |
+          Set-StrictMode -Version Latest
+          $ErrorActionPreference = "Stop"
+          Push-Location apps/ui-server
+          npm ci
+          npm test
+          npm run build
+          Pop-Location
+
+      - name: Install + build ui
+        shell: pwsh
+        run: |
+          Set-StrictMode -Version Latest
+          $ErrorActionPreference = "Stop"
+          Push-Location apps/ui
+          npm ci
+          npm run build
           Pop-Location
 
       # ---------- Python (desktop-runner) ----------

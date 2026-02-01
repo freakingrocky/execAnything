@@ -28,22 +28,40 @@ function createFakeProcess() {
   return { fakeProcess, stdin, stdout, stderr };
 }
 
-async function readLine(stream: PassThrough): Promise<string> {
-  return new Promise((resolve) => {
-    let buffer = "";
-    stream.on("data", (chunk) => {
-      buffer += chunk.toString();
-      if (buffer.includes("\n")) {
-        const [line] = buffer.split("\n");
+function createLineReader(stream: PassThrough) {
+  let buffer = "";
+  const queue: ((line: string) => void)[] = [];
+
+  stream.on("data", (chunk) => {
+    buffer += chunk.toString();
+    while (buffer.includes("\n") && queue.length > 0) {
+      const [line, rest] = buffer.split("\n", 2);
+      buffer = rest ?? "";
+      const resolve = queue.shift();
+      if (resolve) {
         resolve(line);
       }
-    });
+    }
   });
+
+  return {
+    nextLine: () =>
+      new Promise<string>((resolve) => {
+        if (buffer.includes("\n")) {
+          const [line, rest] = buffer.split("\n", 2);
+          buffer = rest ?? "";
+          resolve(line);
+          return;
+        }
+        queue.push(resolve);
+      }),
+  };
 }
 
 describe("DesktopClient", () => {
   it("sends ping and parses response", async () => {
     const { fakeProcess, stdin, stdout } = createFakeProcess();
+    const reader = createLineReader(stdin);
     const client = new DesktopClient(
       {
         pythonExecutable: "python",
@@ -58,7 +76,7 @@ describe("DesktopClient", () => {
     await client.start();
     const pingPromise = client.ping();
 
-    const requestLine = await readLine(stdin);
+    const requestLine = await reader.nextLine();
     const request = JSON.parse(requestLine) as { id: number };
     stdout.write(
       JSON.stringify({
@@ -71,6 +89,70 @@ describe("DesktopClient", () => {
     const response = await pingPromise;
     expect(response.ok).toBe(true);
     expect(response.service).toBe("desktop-runner");
+
+    await client.stop();
+  });
+
+  it("sends resolve and assert requests", async () => {
+    const { fakeProcess, stdin, stdout } = createFakeProcess();
+    const reader = createLineReader(stdin);
+    const client = new DesktopClient(
+      {
+        pythonExecutable: "python",
+        module: "desktop_runner.server",
+        requestTimeoutMs: 1000,
+        spawnTimeoutMs: 0,
+        pythonPath: ["desktop-runner/src"],
+      },
+      () => fakeProcess,
+    );
+
+    await client.start();
+
+    const resolvePromise = client.resolveTarget({
+      run_id: "run_1",
+      step_id: "step_1",
+      target: { ladder: [{ kind: "uia", confidence: 1, selector: {} }] },
+    });
+    const resolveLine = await reader.nextLine();
+    const resolveRequest = JSON.parse(resolveLine) as {
+      id: number;
+      method: string;
+    };
+    stdout.write(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: resolveRequest.id,
+        result: {
+          resolved: { rung_index: 0, kind: "uia", element: { name: "Edit" } },
+          match_attempts: [],
+        },
+      }) + "\n",
+    );
+    const resolveResult = await resolvePromise;
+    expect(resolveResult.resolved.kind).toBe("uia");
+
+    const assertPromise = client.assertCheck({
+      run_id: "run_1",
+      step_id: "step_2",
+      assertions: [{ kind: "desktop_element_exists" }],
+    });
+    const assertLine = await reader.nextLine();
+    const assertRequest = JSON.parse(assertLine) as {
+      id: number;
+      method: string;
+    };
+    stdout.write(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: assertRequest.id,
+        result: { ok: true, failed: [] },
+      }) + "\n",
+    );
+    const assertResult = await assertPromise;
+    expect(assertResult.ok).toBe(true);
+    expect(resolveRequest.method).toBe("target.resolve");
+    expect(assertRequest.method).toBe("assert.check");
 
     await client.stop();
   });

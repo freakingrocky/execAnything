@@ -24,3 +24,10 @@ Operators choose one of:
 
 Decisions are stored as JSONL records with timestamps and comments when
 provided.
+
+## UI-driven verification
+
+The UI server can launch verification runs and stream decision prompts to the
+browser UI. Decisions selected in the UI are forwarded back to the orchestrator
+CLI prompt, so verification runs remain deterministic while avoiding manual CLI
+input. See `docs/ui.md` for launch instructions.

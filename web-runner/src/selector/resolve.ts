@@ -13,6 +13,10 @@ export interface ResolveResult {
   match_attempts: MatchAttempt[];
 }
 
+export interface ResolveOptions {
+  recordAllAttempts?: boolean;
+}
+
 function scopedLocatorRoot(
   page: Page,
   scope?: WebTargetScope,
@@ -66,6 +70,7 @@ export async function resolveTarget(
   page: Page,
   target: WebTarget,
   timeoutMs?: number,
+  options?: ResolveOptions,
 ): Promise<ResolveResult> {
   const scope = target.scope;
   if (scope?.url_contains && !page.url().includes(scope.url_contains)) {
@@ -79,6 +84,9 @@ export async function resolveTarget(
   }
   const root = scopedLocatorRoot(page, scope);
   const match_attempts: MatchAttempt[] = [];
+  const recordAllAttempts = options?.recordAllAttempts ?? false;
+  let resolved: ResolvedElement | null = null;
+  let resolvedLocator: Locator | null = null;
 
   for (let index = 0; index < target.ladder.length; index += 1) {
     const rung = target.ladder[index];
@@ -98,16 +106,20 @@ export async function resolveTarget(
         duration_ms,
         ok,
       });
-      if (ok) {
-        return {
-          locator,
-          resolved: {
-            rung_index: index,
-            kind: rung.kind,
-            selector: rung.selector,
-          },
-          match_attempts,
+      if (ok && !resolved) {
+        resolved = {
+          rung_index: index,
+          kind: rung.kind,
+          selector: rung.selector,
         };
+        resolvedLocator = locator;
+        if (!recordAllAttempts) {
+          return {
+            locator,
+            resolved,
+            match_attempts,
+          };
+        }
       }
     } catch (error) {
       const duration_ms = Date.now() - started;
@@ -119,7 +131,22 @@ export async function resolveTarget(
         ok: false,
         error: error instanceof Error ? error.message : String(error),
       });
+      if (!recordAllAttempts && resolved) {
+        return {
+          locator: resolvedLocator as Locator,
+          resolved,
+          match_attempts,
+        };
+      }
     }
+  }
+
+  if (resolved && resolvedLocator) {
+    return {
+      locator: resolvedLocator,
+      resolved,
+      match_attempts,
+    };
   }
 
   throw new Error("No web selector rung resolved to a unique element");

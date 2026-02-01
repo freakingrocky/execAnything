@@ -1,13 +1,10 @@
-import path from "path";
-import { pathToFileURL } from "url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { WebRunner, WebTarget } from "../src";
+import { fixtureUrl } from "./_helpers/fixture";
 
 describe("web-runner smoke", () => {
   let runner: WebRunner;
-  const appUrl = pathToFileURL(
-    path.join(__dirname, "..", "test-app", "index.html"),
-  ).toString();
+  const appUrl = fixtureUrl(import.meta.url, "..", "test-app", "index.html");
 
   beforeEach(async () => {
     runner = new WebRunner({ headless: true });

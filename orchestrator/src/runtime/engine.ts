@@ -472,15 +472,16 @@ export class RuntimeEngine {
   }
 
   private normalizeTarget(target: WorkflowTarget): DesktopTarget {
-    const scope = (
-      target.scope as
-        | { desktop?: DesktopTarget["scope"] }
-        | DesktopTarget["scope"]
-        | undefined
-    )?.desktop;
+    const desktopScope = this.extractDesktopScope(target.scope);
+    const ladder = target.ladder.filter((rung): rung is DesktopTarget["ladder"][number] =>
+      this.isDesktopRung(rung),
+    );
+    if (ladder.length === 0) {
+      throw new Error("Desktop target ladder must include at least one desktop selector rung");
+    }
     return {
-      ladder: target.ladder,
-      scope: scope ?? (target.scope as DesktopTarget["scope"] | undefined),
+      ladder,
+      scope: desktopScope,
     };
   }
 
@@ -496,19 +497,23 @@ export class RuntimeEngine {
   }
 
   private normalizeWebTarget(target: WorkflowTarget): WebTarget {
-    const scope = (
-      target.scope as
-        | { web?: WebTarget["scope"] }
-        | WebTarget["scope"]
-        | undefined
-    )?.web;
+    const webScope = this.extractWebScope(target.scope);
+    const ladder = target.ladder.filter((rung): rung is WebTarget["ladder"][number] =>
+      this.isWebRung(rung),
+    );
+    if (ladder.length === 0) {
+      throw new Error("Web target ladder must include at least one web selector rung");
+    }
     return {
-      ladder: target.ladder,
-      scope: scope ?? (target.scope as WebTarget["scope"] | undefined),
+      ladder,
+      scope: webScope,
     };
   }
 
   private normalizeWebAssertion(assertion: Assertion): WebAssertion {
+    if (!this.isWebAssertion(assertion)) {
+      throw new Error(`Non-web assertion used in web step: ${assertion.kind}`);
+    }
     const normalized: WebAssertion = { ...assertion };
     if (assertion.target) {
       normalized.target = this.normalizeWebTarget(assertion.target);
@@ -517,6 +522,75 @@ export class RuntimeEngine {
       normalized.assert = this.normalizeWebAssertion(assertion.assert);
     }
     return normalized;
+  }
+
+  private extractDesktopScope(
+    scope: WorkflowTarget["scope"],
+  ): DesktopTarget["scope"] | undefined {
+    if (!scope) {
+      return undefined;
+    }
+    if ("desktop" in scope) {
+      return scope.desktop;
+    }
+    if (
+      "process_name" in scope ||
+      "window_title_contains" in scope ||
+      "window_class" in scope
+    ) {
+      return scope;
+    }
+    return undefined;
+  }
+
+  private extractWebScope(
+    scope: WorkflowTarget["scope"],
+  ): WebTarget["scope"] | undefined {
+    if (!scope) {
+      return undefined;
+    }
+    if ("web" in scope) {
+      return scope.web;
+    }
+    if ("url_contains" in scope || "title_contains" in scope || "frame" in scope) {
+      return scope;
+    }
+    return undefined;
+  }
+
+  private isDesktopRung(rung: WorkflowTarget["ladder"][number]): rung is DesktopTarget["ladder"][number] {
+    return (
+      rung.kind === "uia" ||
+      rung.kind === "uia_near_label" ||
+      rung.kind === "uia_path" ||
+      rung.kind === "ocr_anchor" ||
+      rung.kind === "coords"
+    );
+  }
+
+  private isWebRung(rung: WorkflowTarget["ladder"][number]): rung is WebTarget["ladder"][number] {
+    return (
+      rung.kind === "web_role" ||
+      rung.kind === "web_label" ||
+      rung.kind === "web_css" ||
+      rung.kind === "web_text" ||
+      rung.kind === "web_xpath"
+    );
+  }
+
+  private isWebAssertion(assertion: Assertion): assertion is WebAssertion {
+    return (
+      assertion.kind === "web_exists" ||
+      assertion.kind === "web_visible" ||
+      assertion.kind === "web_url_contains" ||
+      assertion.kind === "web_url_equals" ||
+      assertion.kind === "web_title_contains" ||
+      assertion.kind === "web_text_contains" ||
+      assertion.kind === "web_text_equals" ||
+      assertion.kind === "web_value_equals" ||
+      assertion.kind === "web_value_contains" ||
+      assertion.kind === "not"
+    );
   }
 
   private async appendTrace(trace: StepTrace | WebStepTrace): Promise<void> {

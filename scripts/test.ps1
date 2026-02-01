@@ -3,7 +3,12 @@ Set-StrictMode -Version Latest
 
 Push-Location web-runner
 npm install
-npx playwright install --with-deps
+$playwrightCache = Join-Path (Get-Location) "node_modules\.cache\ms-playwright"
+if (-not (Test-Path $playwrightCache)) {
+  npx playwright install --with-deps chromium
+} else {
+  npx playwright install chromium
+}
 npm test
 Pop-Location
 
@@ -20,6 +25,17 @@ Pop-Location
 Push-Location packages/shared
 npm install
 npm test
+Pop-Location
+
+Push-Location apps/ui-server
+npm install
+npm test
+npm run build
+Pop-Location
+
+Push-Location apps/ui
+npm install
+npm run build
 Pop-Location
 
 $repoRoot = Get-Location

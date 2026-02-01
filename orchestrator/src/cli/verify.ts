@@ -95,6 +95,7 @@ class PromptDecisionProvider implements DecisionProvider {
     const rl = readline.createInterface({ input, output });
     try {
       let choice = "";
+      console.log(`[verify] Awaiting decision for step ${step.id}`);
       while (!["p", "c", "r"].includes(choice)) {
         choice = (
           await rl.question(

@@ -1,5 +1,5 @@
 import path from "path";
-import { pathToFileURL } from "url";
+import { pathToFileURL, fileURLToPath } from "url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Browser, BrowserContext, Page, chromium } from "playwright";
 import { resolveTarget } from "../src/selector/resolve";
@@ -14,6 +14,11 @@ describe("resolveTarget", () => {
     browser = await chromium.launch({ headless: true });
     context = await browser.newContext();
     page = await context.newPage();
+
+    const __filename = new URL(import.meta.url).pathname;
+    const __dirname = path.dirname(__filename);
+    const fixturePath = path.join(__dirname, "fixtures", "selector.html");
+    await page.goto(pathToFileURL(fixturePath).toString());
   });
 
   afterEach(async () => {

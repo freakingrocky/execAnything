@@ -33,16 +33,6 @@ jobs:
             synthesizer/package-lock.json
             packages/shared/package-lock.json
 
-      - name: Install + test orchestrator
-        shell: pwsh
-        run: |
-          Set-StrictMode -Version Latest
-          $ErrorActionPreference = "Stop"
-          Push-Location orchestrator
-          npm ci
-          npm test
-          Pop-Location
-
       - name: Install Playwright browsers
         shell: pwsh
         run: |
@@ -51,6 +41,16 @@ jobs:
           Push-Location web-runner
           npm ci
           npx playwright install --with-deps
+          npm test
+          Pop-Location
+
+      - name: Install + test orchestrator
+        shell: pwsh
+        run: |
+          Set-StrictMode -Version Latest
+          $ErrorActionPreference = "Stop"
+          Push-Location orchestrator
+          npm ci
           npm test
           Pop-Location
 

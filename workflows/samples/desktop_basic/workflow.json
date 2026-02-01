@@ -1,0 +1,110 @@
+{
+  "version": "0.1",
+  "id": "desktop_basic",
+  "name": "Desktop Basic Sample",
+  "description": "Focus a window and fill a text box (manual run only).",
+  "steps": [
+    {
+      "id": "focus_window",
+      "name": "Focus Notepad",
+      "driver": "desktop",
+      "action": "focus_window",
+      "explain": "Bring the target window to the foreground.",
+      "target": {
+        "ladder": [
+          {
+            "kind": "uia",
+            "confidence": 0.8,
+            "selector": { "controlType": "Window" }
+          }
+        ],
+        "scope": {
+          "process_name": "notepad.exe",
+          "window_title_contains": "Notepad"
+        }
+      },
+      "retry": { "attempts": 2, "wait_ms": 500, "backoff": "linear" },
+      "pre_assert": [
+        {
+          "kind": "desktop_window_active",
+          "target": {
+            "scope": {
+              "process_name": "notepad.exe",
+              "window_title_contains": "Notepad"
+            }
+          }
+        }
+      ],
+      "post_assert": [
+        {
+          "kind": "desktop_window_active",
+          "target": {
+            "scope": {
+              "process_name": "notepad.exe",
+              "window_title_contains": "Notepad"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "fill_text",
+      "name": "Fill editor",
+      "driver": "desktop",
+      "action": "fill",
+      "explain": "Type the provided text into the editor.",
+      "target": {
+        "ladder": [
+          {
+            "kind": "uia",
+            "confidence": 0.9,
+            "selector": { "controlType": "Edit" }
+          }
+        ],
+        "scope": {
+          "process_name": "notepad.exe",
+          "window_title_contains": "Notepad"
+        }
+      },
+      "input": { "var": "text" },
+      "retry": { "attempts": 2, "wait_ms": 500, "backoff": "linear" },
+      "pre_assert": [
+        {
+          "kind": "desktop_element_exists",
+          "target": {
+            "ladder": [
+              {
+                "kind": "uia",
+                "confidence": 0.9,
+                "selector": { "controlType": "Edit" }
+              }
+            ],
+            "scope": {
+              "process_name": "notepad.exe",
+              "window_title_contains": "Notepad"
+            }
+          }
+        }
+      ],
+      "post_assert": [
+        {
+          "kind": "desktop_value_contains",
+          "target": {
+            "ladder": [
+              {
+                "kind": "uia",
+                "confidence": 0.9,
+                "selector": { "controlType": "Edit" }
+              }
+            ],
+            "scope": {
+              "process_name": "notepad.exe",
+              "window_title_contains": "Notepad"
+            }
+          },
+          "value": "Hello"
+        }
+      ]
+    }
+  ]
+}

@@ -9,10 +9,26 @@ export type InputValue =
     };
 
 export interface TargetRung {
-  kind: "uia" | "uia_near_label" | "uia_path" | "ocr_anchor" | "coords";
+  kind:
+    | "web_role"
+    | "web_label"
+    | "web_css"
+    | "web_text"
+    | "web_xpath"
+    | "uia"
+    | "uia_near_label"
+    | "uia_path"
+    | "ocr_anchor"
+    | "coords";
   confidence: number;
   selector: Record<string, unknown>;
   notes?: string;
+}
+
+export interface WebScope {
+  url_contains?: string;
+  title_contains?: string;
+  frame?: string;
 }
 
 export interface DesktopScope {
@@ -22,12 +38,13 @@ export interface DesktopScope {
 }
 
 export interface TargetScope {
+  web?: WebScope;
   desktop?: DesktopScope;
 }
 
 export interface WorkflowTarget {
   ladder: TargetRung[];
-  scope?: TargetScope | DesktopScope;
+  scope?: TargetScope | DesktopScope | WebScope;
 }
 
 export interface RetryPolicy {
@@ -38,6 +55,15 @@ export interface RetryPolicy {
 
 export interface Assertion {
   kind:
+    | "web_exists"
+    | "web_visible"
+    | "web_url_contains"
+    | "web_url_equals"
+    | "web_title_contains"
+    | "web_text_contains"
+    | "web_text_equals"
+    | "web_value_equals"
+    | "web_value_contains"
     | "desktop_window_active"
     | "desktop_element_exists"
     | "desktop_element_visible"
@@ -47,7 +73,11 @@ export interface Assertion {
     | "not";
   target?: WorkflowTarget;
   controlType?: string;
+  text?: string;
   value?: string;
+  url_contains?: string;
+  url_equals?: string;
+  title_contains?: string;
   timeout_ms?: number;
   assert?: Assertion;
 }

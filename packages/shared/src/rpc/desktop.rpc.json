@@ -290,8 +290,10 @@
       "params": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["scope"],
+        "required": ["run_id", "step_id", "scope"],
         "properties": {
+          "run_id": { "$ref": "#/types/RunId" },
+          "step_id": { "$ref": "#/types/StepId" },
           "scope": { "$ref": "#/types/DesktopScope" },
           "timeout_ms": { "type": "integer", "minimum": 0, "maximum": 300000 }
         }
@@ -299,9 +301,9 @@
       "result": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["ok", "window"],
+        "required": ["trace", "window"],
         "properties": {
-          "ok": { "type": "boolean" },
+          "trace": { "$ref": "#/types/StepTrace" },
           "window": { "type": "object", "additionalProperties": true }
         }
       }

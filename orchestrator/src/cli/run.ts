@@ -6,6 +6,7 @@ import { ArtifactManager, RunArtifacts } from "../runtime/artifacts";
 import { RuntimeEngine } from "../runtime/engine";
 import { FileCheckpointStore } from "../runtime/checkpoints";
 import { DesktopClient } from "../rpc/desktopClient";
+import { WebClient } from "../rpc/webClient";
 import { WorkflowDefinition } from "../types/workflow";
 
 function readJsonFile<T>(filePath: string): T {
@@ -51,12 +52,21 @@ async function main(): Promise<void> {
   }
 
   const desktopClient = new DesktopClient(config.desktopRunner);
+  const webClient = new WebClient({
+    ...config.webRunner,
+    artifactDir: runArtifacts.evidenceDir,
+  });
   await desktopClient.start();
   await desktopClient.ping();
   await desktopClient.runBegin({
     run_id: runArtifacts.runId,
     artifact_dir: runArtifacts.evidenceDir,
   });
+  const usesWeb = workflow.steps.some((step) => step.driver === "web");
+  if (usesWeb) {
+    await webClient.start();
+    await webClient.ping();
+  }
 
   const engine = new RuntimeEngine({
     checkpointStore,
@@ -66,10 +76,16 @@ async function main(): Promise<void> {
   });
 
   try {
-    await engine.runWorkflow(workflow, inputs, desktopClient);
+    await engine.runWorkflow(workflow, inputs, {
+      desktop: desktopClient,
+      web: usesWeb ? webClient : undefined,
+    });
   } finally {
     await desktopClient.runEnd({ run_id: runArtifacts.runId });
     await desktopClient.stop();
+    if (usesWeb) {
+      await webClient.stop();
+    }
   }
 }
 

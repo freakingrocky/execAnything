@@ -158,6 +158,7 @@
       "additionalProperties": false,
       "properties": {
         "url_contains": { "type": "string" },
+        "url_equals": { "type": "string" },
         "title_contains": { "type": "string" },
         "frame": { "type": "string", "description": "Frame name or selector." }
       }
@@ -380,10 +381,13 @@
         "kind": {
           "type": "string",
           "enum": [
+            "web_exists",
             "web_visible",
             "web_url_contains",
+            "web_url_equals",
             "web_title_contains",
             "web_text_contains",
+            "web_text_equals",
             "web_value_equals",
             "web_value_contains",
             "desktop_window_active",

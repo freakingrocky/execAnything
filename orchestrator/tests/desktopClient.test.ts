@@ -1,6 +1,7 @@
 import { PassThrough } from "stream";
 import { describe, expect, it } from "vitest";
 import { DesktopClient } from "../src/rpc/desktopClient";
+import { DesktopRpcMethods } from "../src/rpc/contracts";
 
 function createFakeProcess() {
   const stdin = new PassThrough();
@@ -123,7 +124,7 @@ describe("DesktopClient", () => {
     };
 
     expect(resolveRequest.jsonrpc).toBe("2.0");
-    expect(resolveRequest.method).toBe("target.resolve");
+    expect(resolveRequest.method).toBe(DesktopRpcMethods.targetResolve);
     expect(resolveRequest.params.run_id).toBe("run_1");
     expect(resolveRequest.params.step_id).toBe("step_1");
     expect(resolveRequest.params.target?.ladder?.[0]?.kind).toBe("uia");
@@ -155,7 +156,7 @@ describe("DesktopClient", () => {
     expect(resolveRequest.id).not.toBe(assertRequest.id);
 
     expect(assertRequest.jsonrpc).toBe("2.0");
-    expect(assertRequest.method).toBe("assert.check");
+    expect(assertRequest.method).toBe(DesktopRpcMethods.assertCheck);
     expect(assertRequest.params.run_id).toBe("run_1");
     expect(assertRequest.params.step_id).toBe("step_2");
     expect(assertRequest.params.assertions?.[0]?.kind).toBe(
@@ -178,8 +179,8 @@ describe("DesktopClient", () => {
     );
     const assertResult = await assertPromise;
     expect(assertResult.ok).toBe(true);
-    expect(resolveRequest.method).toBe("target.resolve");
-    expect(assertRequest.method).toBe("assert.check");
+    expect(resolveRequest.method).toBe(DesktopRpcMethods.targetResolve);
+    expect(assertRequest.method).toBe(DesktopRpcMethods.assertCheck);
 
     await client.stop();
   });

@@ -1,6 +1,7 @@
 import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 import path from "path";
 import readline from "readline";
+import { DesktopRpcMethods } from "./contracts";
 
 export interface DesktopRunnerConfig {
   pythonExecutable: string;
@@ -144,23 +145,36 @@ export class DesktopClient {
   }
 
   async ping(): Promise<{ ok: boolean; service: string; version: string }> {
-    const result = await this.sendRequest("system.ping", {});
+    const result = await this.sendRequest(DesktopRpcMethods.systemPing, {});
     return result as { ok: boolean; service: string; version: string };
   }
 
   async getCapabilities(): Promise<DesktopRunnerCapabilities> {
-    const result = await this.sendRequest("system.getCapabilities", {});
+    const result = await this.sendRequest(
+      DesktopRpcMethods.systemGetCapabilities,
+      {},
+    );
     return result as DesktopRunnerCapabilities;
   }
 
   async runBegin(params: { run_id: string; artifact_dir: string; correlation_id?: string }): Promise<{ ok: boolean }> {
-    const result = await this.sendRequest("run.begin", params);
+    const result = await this.sendRequest(DesktopRpcMethods.runBegin, params);
     return result as { ok: boolean };
   }
 
   async runEnd(params: { run_id: string }): Promise<{ ok: boolean }> {
-    const result = await this.sendRequest("run.end", params);
+    const result = await this.sendRequest(DesktopRpcMethods.runEnd, params);
     return result as { ok: boolean };
+  }
+
+  async focusWindow(params: {
+    run_id: string;
+    step_id: string;
+    scope: DesktopTarget["scope"];
+    timeout_ms?: number;
+  }): Promise<{ trace: StepTrace; window: Record<string, unknown> }> {
+    const result = await this.sendRequest(DesktopRpcMethods.windowFocus, params);
+    return result as { trace: StepTrace; window: Record<string, unknown> };
   }
 
   async resolveTarget(params: {
@@ -170,7 +184,7 @@ export class DesktopClient {
     retry?: RetryPolicy;
     timeout_ms?: number;
   }): Promise<{ resolved: ResolvedElement; match_attempts: MatchAttempt[] }> {
-    const result = await this.sendRequest("target.resolve", params);
+    const result = await this.sendRequest(DesktopRpcMethods.targetResolve, params);
     return result as { resolved: ResolvedElement; match_attempts: MatchAttempt[] };
   }
 
@@ -184,7 +198,7 @@ export class DesktopClient {
     timeout_ms?: number;
     capture_screenshots?: boolean;
   }): Promise<StepTrace> {
-    const result = await this.sendRequest("action.click", params);
+    const result = await this.sendRequest(DesktopRpcMethods.actionClick, params);
     return result as StepTrace;
   }
 
@@ -197,7 +211,10 @@ export class DesktopClient {
     timeout_ms?: number;
     capture_screenshots?: boolean;
   }): Promise<StepTrace> {
-    const result = await this.sendRequest("action.pasteText", params);
+    const result = await this.sendRequest(
+      DesktopRpcMethods.actionPasteText,
+      params,
+    );
     return result as StepTrace;
   }
 
@@ -210,7 +227,10 @@ export class DesktopClient {
     timeout_ms?: number;
     capture_screenshots?: boolean;
   }): Promise<StepTrace> {
-    const result = await this.sendRequest("action.setValue", params);
+    const result = await this.sendRequest(
+      DesktopRpcMethods.actionSetValue,
+      params,
+    );
     return result as StepTrace;
   }
 
@@ -219,7 +239,7 @@ export class DesktopClient {
     step_id: string;
     assertions: Array<Record<string, unknown>>;
   }): Promise<StepTrace> {
-    const result = await this.sendRequest("assert.check", params);
+    const result = await this.sendRequest(DesktopRpcMethods.assertCheck, params);
     return result as StepTrace;
   }
 
@@ -229,7 +249,10 @@ export class DesktopClient {
     target: DesktopTarget;
     timeout_ms?: number;
   }): Promise<StepTrace> {
-    const result = await this.sendRequest("extract.getValue", params);
+    const result = await this.sendRequest(
+      DesktopRpcMethods.extractGetValue,
+      params,
+    );
     return result as StepTrace;
   }
 
@@ -239,7 +262,10 @@ export class DesktopClient {
     name: string;
     mode?: "active_window" | "screen";
   }): Promise<StepTrace> {
-    const result = await this.sendRequest("artifact.screenshot", params);
+    const result = await this.sendRequest(
+      DesktopRpcMethods.artifactScreenshot,
+      params,
+    );
     return result as StepTrace;
   }
 

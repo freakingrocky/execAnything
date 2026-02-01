@@ -28,22 +28,40 @@ function createFakeProcess() {
   return { fakeProcess, stdin, stdout, stderr };
 }
 
-async function readLine(stream: PassThrough): Promise<string> {
-  return new Promise((resolve) => {
-    let buffer = "";
-    stream.on("data", (chunk) => {
-      buffer += chunk.toString();
-      if (buffer.includes("\n")) {
-        const [line] = buffer.split("\n");
+function createLineReader(stream: PassThrough) {
+  let buffer = "";
+  const queue: ((line: string) => void)[] = [];
+
+  stream.on("data", (chunk) => {
+    buffer += chunk.toString();
+    while (buffer.includes("\n") && queue.length > 0) {
+      const [line, rest] = buffer.split("\n", 2);
+      buffer = rest ?? "";
+      const resolve = queue.shift();
+      if (resolve) {
         resolve(line);
       }
-    });
+    }
   });
+
+  return {
+    nextLine: () =>
+      new Promise<string>((resolve) => {
+        if (buffer.includes("\n")) {
+          const [line, rest] = buffer.split("\n", 2);
+          buffer = rest ?? "";
+          resolve(line);
+          return;
+        }
+        queue.push(resolve);
+      }),
+  };
 }
 
 describe("DesktopClient", () => {
   it("sends ping and parses response", async () => {
     const { fakeProcess, stdin, stdout } = createFakeProcess();
+    const reader = createLineReader(stdin);
     const client = new DesktopClient(
       {
         pythonExecutable: "python",
@@ -58,7 +76,7 @@ describe("DesktopClient", () => {
     await client.start();
     const pingPromise = client.ping();
 
-    const requestLine = await readLine(stdin);
+    const requestLine = await reader.nextLine();
     const request = JSON.parse(requestLine) as { id: number };
     stdout.write(
       JSON.stringify({
@@ -77,6 +95,7 @@ describe("DesktopClient", () => {
 
   it("sends resolve and assert requests", async () => {
     const { fakeProcess, stdin, stdout } = createFakeProcess();
+    const reader = createLineReader(stdin);
     const client = new DesktopClient(
       {
         pythonExecutable: "python",
@@ -95,7 +114,7 @@ describe("DesktopClient", () => {
       step_id: "step_1",
       target: { ladder: [{ kind: "uia", confidence: 1, selector: {} }] },
     });
-    const resolveLine = await readLine(stdin);
+    const resolveLine = await reader.nextLine();
     const resolveRequest = JSON.parse(resolveLine) as { id: number; method: string };
     stdout.write(
       JSON.stringify({
@@ -115,7 +134,7 @@ describe("DesktopClient", () => {
       step_id: "step_2",
       assertions: [{ kind: "desktop_element_exists" }],
     });
-    const assertLine = await readLine(stdin);
+    const assertLine = await reader.nextLine();
     const assertRequest = JSON.parse(assertLine) as { id: number; method: string };
     stdout.write(
       JSON.stringify({

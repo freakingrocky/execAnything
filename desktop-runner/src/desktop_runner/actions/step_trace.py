@@ -20,6 +20,9 @@ class StepTraceBuilder:
     before_screenshot_path: Optional[str] = None
     after_screenshot_path: Optional[str] = None
     error: Optional[str] = None
+    error_code: Optional[int] = None
+    value: Optional[str] = None
+    failed: Optional[List[Dict[str, Any]]] = None
 
     def capture_before(self, enabled: bool) -> None:
         if not enabled:
@@ -55,6 +58,12 @@ class StepTraceBuilder:
             payload["after_screenshot_path"] = self.after_screenshot_path
         if self.error:
             payload["error"] = self.error
+        if self.error_code is not None:
+            payload["error_code"] = self.error_code
+        if self.value is not None:
+            payload["value"] = self.value
+        if self.failed is not None:
+            payload["failed"] = self.failed
         return payload
 
 

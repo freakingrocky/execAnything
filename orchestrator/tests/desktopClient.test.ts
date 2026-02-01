@@ -146,7 +146,15 @@ describe("DesktopClient", () => {
       JSON.stringify({
         jsonrpc: "2.0",
         id: assertRequest.id,
-        result: { ok: true, failed: [] },
+        result: {
+          run_id: "run_1",
+          step_id: "step_2",
+          started_at: "2024-01-01T00:00:00Z",
+          ended_at: "2024-01-01T00:00:01Z",
+          ok: true,
+          match_attempts: [],
+          failed: [],
+        },
       }) + "\n",
     );
     const assertResult = await assertPromise;

@@ -146,7 +146,22 @@
         "resolved": { "$ref": "#/types/ResolvedElement" },
         "before_screenshot_path": { "type": "string" },
         "after_screenshot_path": { "type": "string" },
-        "error": { "type": "string" }
+        "error": { "type": "string" },
+        "error_code": { "type": "integer" },
+        "failed": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["index", "kind", "message"],
+            "properties": {
+              "index": { "type": "integer", "minimum": 0 },
+              "kind": { "type": "string" },
+              "message": { "type": "string" }
+            }
+          }
+        },
+        "value": { "type": "string" }
       }
     }
   },
@@ -399,27 +414,7 @@
           }
         }
       },
-      "result": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["ok", "failed"],
-        "properties": {
-          "ok": { "type": "boolean" },
-          "failed": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "additionalProperties": false,
-              "required": ["index", "kind", "message"],
-              "properties": {
-                "index": { "type": "integer", "minimum": 0 },
-                "kind": { "type": "string" },
-                "message": { "type": "string" }
-              }
-            }
-          }
-        }
-      }
+      "result": { "$ref": "#/types/StepTrace" }
     },
 
     {
@@ -436,14 +431,7 @@
           "timeout_ms": { "type": "integer", "minimum": 0, "maximum": 300000 }
         }
       },
-      "result": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["value"],
-        "properties": {
-          "value": { "type": "string" }
-        }
-      }
+      "result": { "$ref": "#/types/StepTrace" }
     },
 
     {
@@ -452,21 +440,15 @@
       "params": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["run_id", "name"],
+        "required": ["run_id", "step_id", "name"],
         "properties": {
           "run_id": { "$ref": "#/types/RunId" },
+          "step_id": { "$ref": "#/types/StepId" },
           "name": { "type": "string" },
           "mode": { "type": "string", "enum": ["active_window", "screen"] }
         }
       },
-      "result": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["path"],
-        "properties": {
-          "path": { "type": "string" }
-        }
-      }
+      "result": { "$ref": "#/types/StepTrace" }
     }
   ],
 

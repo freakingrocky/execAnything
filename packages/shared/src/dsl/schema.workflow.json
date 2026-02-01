@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/workflow.schema.json",
+  "title": "Workflow",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "id", "name", "steps"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^0\\.[0-9]+$"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9_\\-\\.]+$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": { "type": "string" },
+
+    "defaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "retry": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "attempts": { "type": "integer", "minimum": 0, "maximum": 20 },
+            "wait_ms": { "type": "integer", "minimum": 0, "maximum": 120000 },
+            "backoff": {
+              "type": "string",
+              "enum": ["none", "linear", "exponential"]
+            }
+          }
+        },
+        "timeouts": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "step_timeout_ms": { "type": "integer", "minimum": 0 },
+            "wait_timeout_ms": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+
+    "inputs_schema": {
+      "type": "object",
+      "description": "Optional JSON Schema describing required user inputs for verification/runtime."
+    },
+
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "schema.step.json" }
+    },
+
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

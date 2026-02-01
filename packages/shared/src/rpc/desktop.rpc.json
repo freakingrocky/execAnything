@@ -1,0 +1,548 @@
+{
+  "protocol": "jsonrpc-2.0",
+  "transport": {
+    "mode": "stdio",
+    "framing": "jsonl",
+    "encoding": "utf-8"
+  },
+  "version": "0.1",
+  "service": "desktop-runner",
+  "types": {
+    "CorrelationId": {
+      "type": "string",
+      "description": "Orchestrator-generated correlation id for a run/session."
+    },
+    "RunId": { "type": "string" },
+    "StepId": { "type": "string" },
+
+    "DesktopScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "process_name": { "type": "string" },
+        "window_title_contains": { "type": "string" },
+        "window_class": { "type": "string" }
+      }
+    },
+
+    "RetryPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attempts", "wait_ms"],
+      "properties": {
+        "attempts": { "type": "integer", "minimum": 0, "maximum": 20 },
+        "wait_ms": { "type": "integer", "minimum": 0, "maximum": 120000 },
+        "backoff": {
+          "type": "string",
+          "enum": ["none", "linear", "exponential"]
+        }
+      }
+    },
+
+    "TargetRung": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "selector", "confidence"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["uia", "uia_near_label", "uia_path", "ocr_anchor", "coords"]
+        },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "selector": { "type": "object" },
+        "notes": { "type": "string" }
+      }
+    },
+
+    "DesktopTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ladder"],
+      "properties": {
+        "ladder": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/types/TargetRung" }
+        },
+        "scope": { "$ref": "#/types/DesktopScope" }
+      }
+    },
+
+    "MatchAttempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rung_index", "kind", "matched_count", "duration_ms", "ok"],
+      "properties": {
+        "rung_index": { "type": "integer", "minimum": 0 },
+        "kind": { "type": "string" },
+        "matched_count": { "type": "integer", "minimum": 0 },
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "ok": { "type": "boolean" },
+        "error": { "type": "string" }
+      }
+    },
+
+    "ResolvedElement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rung_index", "kind", "element"],
+      "properties": {
+        "rung_index": { "type": "integer", "minimum": 0 },
+        "kind": { "type": "string" },
+        "element": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Best-effort UIA element descriptor: automationId/name/controlType/className/boundingRect/etc."
+        }
+      }
+    },
+
+    "Assertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "desktop_window_active",
+            "desktop_element_exists",
+            "desktop_element_visible",
+            "desktop_focused_controlType",
+            "desktop_value_equals",
+            "desktop_value_contains",
+            "not"
+          ]
+        },
+        "target": { "$ref": "#/types/DesktopTarget" },
+        "controlType": { "type": "string" },
+        "value": { "type": "string" },
+        "timeout_ms": { "type": "integer", "minimum": 0, "maximum": 300000 },
+        "assert": { "$ref": "#/types/Assertion" }
+      }
+    },
+
+    "StepTrace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "step_id",
+        "started_at",
+        "ended_at",
+        "ok",
+        "match_attempts"
+      ],
+      "properties": {
+        "run_id": { "$ref": "#/types/RunId" },
+        "step_id": { "$ref": "#/types/StepId" },
+        "started_at": { "type": "string", "format": "date-time" },
+        "ended_at": { "type": "string", "format": "date-time" },
+        "ok": { "type": "boolean" },
+        "match_attempts": {
+          "type": "array",
+          "items": { "$ref": "#/types/MatchAttempt" }
+        },
+        "resolved": { "$ref": "#/types/ResolvedElement" },
+        "before_screenshot_path": { "type": "string" },
+        "after_screenshot_path": { "type": "string" },
+        "error": { "type": "string" }
+      }
+    }
+  },
+
+  "errors": [
+    { "code": -32700, "name": "ParseError" },
+    { "code": -32600, "name": "InvalidRequest" },
+    { "code": -32601, "name": "MethodNotFound" },
+    { "code": -32602, "name": "InvalidParams" },
+    { "code": -32603, "name": "InternalError" },
+
+    {
+      "code": 1000,
+      "name": "ScopeNotFound",
+      "meaning": "Target window/process not found"
+    },
+    {
+      "code": 1001,
+      "name": "ElementNotFound",
+      "meaning": "No match for selector ladder"
+    },
+    {
+      "code": 1002,
+      "name": "AmbiguousMatch",
+      "meaning": "More than one match after ladder rung selection"
+    },
+    {
+      "code": 1003,
+      "name": "ActionFailed",
+      "meaning": "Click/type/set-value failed"
+    },
+    {
+      "code": 1004,
+      "name": "AssertionFailed",
+      "meaning": "Pre/post assertion failed"
+    },
+    { "code": 1005, "name": "Timeout", "meaning": "Operation timed out" },
+    {
+      "code": 1006,
+      "name": "OCRUnavailable",
+      "meaning": "OCR requested but not available/configured"
+    }
+  ],
+
+  "methods": [
+    {
+      "name": "system.ping",
+      "description": "Health check.",
+      "params": { "type": "object", "additionalProperties": false },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ok", "service", "version"],
+        "properties": {
+          "ok": { "type": "boolean" },
+          "service": { "type": "string" },
+          "version": { "type": "string" }
+        }
+      }
+    },
+    {
+      "name": "system.getCapabilities",
+      "description": "Return available features and environment info.",
+      "params": { "type": "object", "additionalProperties": false },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["uia", "ocr", "screenshots"],
+        "properties": {
+          "uia": { "type": "boolean" },
+          "ocr": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["windows_ocr", "tesseract"],
+            "properties": {
+              "windows_ocr": { "type": "boolean" },
+              "tesseract": { "type": "boolean" }
+            }
+          },
+          "screenshots": { "type": "boolean" }
+        }
+      }
+    },
+    {
+      "name": "run.begin",
+      "description": "Begin a run. Sets base artifact directory and correlation ids.",
+      "params": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["run_id", "artifact_dir"],
+        "properties": {
+          "run_id": { "$ref": "#/types/RunId" },
+          "artifact_dir": { "type": "string" },
+          "correlation_id": { "$ref": "#/types/CorrelationId" }
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ok"],
+        "properties": { "ok": { "type": "boolean" } }
+      }
+    },
+    {
+      "name": "run.end",
+      "description": "End a run, flush logs.",
+      "params": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["run_id"],
+        "properties": {
+          "run_id": { "$ref": "#/types/RunId" }
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ok"],
+        "properties": { "ok": { "type": "boolean" } }
+      }
+    },
+
+    {
+      "name": "window.focus",
+      "description": "Focus a window matching the scope.",
+      "params": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["scope"],
+        "properties": {
+          "scope": { "$ref": "#/types/DesktopScope" },
+          "timeout_ms": { "type": "integer", "minimum": 0, "maximum": 300000 }
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ok", "window"],
+        "properties": {
+          "ok": { "type": "boolean" },
+          "window": { "type": "object", "additionalProperties": true }
+        }
+      }
+    },
+
+    {
+      "name": "target.resolve",
+      "description": "Resolve a selector ladder to a single UI element. Returns match attempts and resolved descriptor.",
+      "params": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["run_id", "step_id", "target"],
+        "properties": {
+          "run_id": { "$ref": "#/types/RunId" },
+          "step_id": { "$ref": "#/types/StepId" },
+          "target": { "$ref": "#/types/DesktopTarget" },
+          "retry": { "$ref": "#/types/RetryPolicy" },
+          "timeout_ms": { "type": "integer", "minimum": 0, "maximum": 300000 }
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["resolved", "match_attempts"],
+        "properties": {
+          "resolved": { "$ref": "#/types/ResolvedElement" },
+          "match_attempts": {
+            "type": "array",
+            "items": { "$ref": "#/types/MatchAttempt" }
+          }
+        }
+      }
+    },
+
+    {
+      "name": "action.click",
+      "description": "Click an element resolved from a target ladder (or accept a prior resolved element handle if you add handles later).",
+      "params": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["run_id", "step_id", "target"],
+        "properties": {
+          "run_id": { "$ref": "#/types/RunId" },
+          "step_id": { "$ref": "#/types/StepId" },
+          "target": { "$ref": "#/types/DesktopTarget" },
+          "button": { "type": "string", "enum": ["left", "right", "middle"] },
+          "clicks": { "type": "integer", "minimum": 1, "maximum": 3 },
+          "retry": { "$ref": "#/types/RetryPolicy" },
+          "timeout_ms": { "type": "integer", "minimum": 0, "maximum": 300000 },
+          "capture_screenshots": { "type": "boolean" }
+        }
+      },
+      "result": { "$ref": "#/types/StepTrace" }
+    },
+
+    {
+      "name": "action.pasteText",
+      "description": "Paste text into a resolved element (preferred over keystrokes).",
+      "params": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["run_id", "step_id", "target", "text"],
+        "properties": {
+          "run_id": { "$ref": "#/types/RunId" },
+          "step_id": { "$ref": "#/types/StepId" },
+          "target": { "$ref": "#/types/DesktopTarget" },
+          "text": { "type": "string" },
+          "retry": { "$ref": "#/types/RetryPolicy" },
+          "timeout_ms": { "type": "integer", "minimum": 0, "maximum": 300000 },
+          "capture_screenshots": { "type": "boolean" }
+        }
+      },
+      "result": { "$ref": "#/types/StepTrace" }
+    },
+
+    {
+      "name": "action.setValue",
+      "description": "Set UIA ValuePattern where supported.",
+      "params": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["run_id", "step_id", "target", "value"],
+        "properties": {
+          "run_id": { "$ref": "#/types/RunId" },
+          "step_id": { "$ref": "#/types/StepId" },
+          "target": { "$ref": "#/types/DesktopTarget" },
+          "value": { "type": "string" },
+          "retry": { "$ref": "#/types/RetryPolicy" },
+          "timeout_ms": { "type": "integer", "minimum": 0, "maximum": 300000 },
+          "capture_screenshots": { "type": "boolean" }
+        }
+      },
+      "result": { "$ref": "#/types/StepTrace" }
+    },
+
+    {
+      "name": "assert.check",
+      "description": "Evaluate one or more assertions (used for pre/post checks).",
+      "params": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["run_id", "step_id", "assertions"],
+        "properties": {
+          "run_id": { "$ref": "#/types/RunId" },
+          "step_id": { "$ref": "#/types/StepId" },
+          "assertions": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/types/Assertion" }
+          }
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ok", "failed"],
+        "properties": {
+          "ok": { "type": "boolean" },
+          "failed": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["index", "kind", "message"],
+              "properties": {
+                "index": { "type": "integer", "minimum": 0 },
+                "kind": { "type": "string" },
+                "message": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    {
+      "name": "extract.getValue",
+      "description": "Extract value/text from a resolved element.",
+      "params": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["run_id", "step_id", "target"],
+        "properties": {
+          "run_id": { "$ref": "#/types/RunId" },
+          "step_id": { "$ref": "#/types/StepId" },
+          "target": { "$ref": "#/types/DesktopTarget" },
+          "timeout_ms": { "type": "integer", "minimum": 0, "maximum": 300000 }
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["value"],
+        "properties": {
+          "value": { "type": "string" }
+        }
+      }
+    },
+
+    {
+      "name": "artifact.screenshot",
+      "description": "Capture a screenshot of the active window or full screen (for evidence).",
+      "params": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["run_id", "name"],
+        "properties": {
+          "run_id": { "$ref": "#/types/RunId" },
+          "name": { "type": "string" },
+          "mode": { "type": "string", "enum": ["active_window", "screen"] }
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path"],
+        "properties": {
+          "path": { "type": "string" }
+        }
+      }
+    }
+  ],
+
+  "examples": {
+    "request": {
+      "jsonrpc": "2.0",
+      "id": 12,
+      "method": "action.click",
+      "params": {
+        "run_id": "run_2026_02_01_001",
+        "step_id": "step_010",
+        "target": {
+          "scope": {
+            "process_name": "TIDAL.exe",
+            "window_title_contains": "TIDAL"
+          },
+          "ladder": [
+            {
+              "kind": "uia_near_label",
+              "confidence": 0.86,
+              "selector": {
+                "label": "Search",
+                "controlType": "Edit",
+                "maxDistancePx": 120,
+                "direction": "right_of"
+              }
+            },
+            {
+              "kind": "ocr_anchor",
+              "confidence": 0.62,
+              "selector": {
+                "anchorText": "Search",
+                "exact": false,
+                "clickOffset": { "dx": 160, "dy": 0 }
+              }
+            }
+          ]
+        },
+        "button": "left",
+        "clicks": 1,
+        "retry": { "attempts": 3, "wait_ms": 300, "backoff": "linear" },
+        "timeout_ms": 15000,
+        "capture_screenshots": true
+      }
+    },
+    "response": {
+      "jsonrpc": "2.0",
+      "id": 12,
+      "result": {
+        "run_id": "run_2026_02_01_001",
+        "step_id": "step_010",
+        "started_at": "2026-02-01T03:21:02Z",
+        "ended_at": "2026-02-01T03:21:03Z",
+        "ok": true,
+        "match_attempts": [
+          {
+            "rung_index": 0,
+            "kind": "uia_near_label",
+            "matched_count": 1,
+            "duration_ms": 42,
+            "ok": true
+          }
+        ],
+        "resolved": {
+          "rung_index": 0,
+          "kind": "uia_near_label",
+          "element": {
+            "controlType": "Edit",
+            "name": "",
+            "automationId": "SearchBox",
+            "boundingRect": { "x": 220, "y": 110, "w": 640, "h": 34 }
+          }
+        },
+        "before_screenshot_path": "evidence/step_010_before.png",
+        "after_screenshot_path": "evidence/step_010_after.png"
+      }
+    }
+  }
+}

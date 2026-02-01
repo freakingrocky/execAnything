@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Web Runner Test App</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 24px;
+      }
+      .panel {
+        border: 1px solid #ccc;
+        padding: 16px;
+        max-width: 420px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="panel">
+      <h1 id="title">Web Runner Demo</h1>
+      <p data-testid="status-text">Status: idle</p>
+      <label>
+        Name
+        <input id="name-input" type="text" value="" />
+      </label>
+      <label>
+        Choice
+        <select id="choice-select">
+          <option value="alpha">Alpha</option>
+          <option value="beta">Beta</option>
+        </select>
+      </label>
+      <button id="submit-btn">Submit</button>
+      <div id="result">No submission yet.</div>
+    </main>
+    <script>
+      const button = document.getElementById("submit-btn");
+      const status = document.querySelector("[data-testid='status-text']");
+      const input = document.getElementById("name-input");
+      const select = document.getElementById("choice-select");
+      const result = document.getElementById("result");
+
+      button.addEventListener("click", () => {
+        status.textContent = "Status: submitted";
+        result.textContent = `Hello ${input.value} (${select.value})`;
+      });
+    </script>
+  </body>
+</html>

@@ -27,7 +27,22 @@ jobs:
         with:
           node-version: "20"
           cache: npm
-          cache-dependency-path: orchestrator/package-lock.json
+          cache-dependency-path: |
+            orchestrator/package-lock.json
+            web-runner/package-lock.json
+            synthesizer/package-lock.json
+            packages/shared/package-lock.json
+
+      - name: Install Playwright browsers
+        shell: pwsh
+        run: |
+          Set-StrictMode -Version Latest
+          $ErrorActionPreference = "Stop"
+          Push-Location web-runner
+          npm ci
+          npx playwright install --with-deps
+          npm test
+          Pop-Location
 
       - name: Install + test orchestrator
         shell: pwsh
@@ -35,6 +50,26 @@ jobs:
           Set-StrictMode -Version Latest
           $ErrorActionPreference = "Stop"
           Push-Location orchestrator
+          npm ci
+          npm test
+          Pop-Location
+
+      - name: Install + test synthesizer
+        shell: pwsh
+        run: |
+          Set-StrictMode -Version Latest
+          $ErrorActionPreference = "Stop"
+          Push-Location synthesizer
+          npm ci
+          npm test
+          Pop-Location
+
+      - name: Install + test shared package
+        shell: pwsh
+        run: |
+          Set-StrictMode -Version Latest
+          $ErrorActionPreference = "Stop"
+          Push-Location packages/shared
           npm ci
           npm test
           Pop-Location
@@ -71,5 +106,7 @@ jobs:
           path: |
             orchestrator/coverage/**
             desktop-runner/htmlcov/**
+            web-runner/test-results/**
+            synthesizer/test-results/**
             **/.pytest_cache/**
           if-no-files-found: ignore

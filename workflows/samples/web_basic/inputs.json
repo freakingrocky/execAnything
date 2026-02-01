@@ -1,0 +1,5 @@
+{
+  "name": "Ada",
+  "choice": "beta",
+  "TEST_APP_URL": "file:///C:/path/to/web-runner/test-app/index.html"
+}

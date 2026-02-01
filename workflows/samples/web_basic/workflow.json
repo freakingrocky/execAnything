@@ -1,0 +1,172 @@
+{
+  "version": "0.1",
+  "id": "web_basic",
+  "name": "Web Basic Sample",
+  "description": "Navigate, fill, select, and click in a sample web page.",
+  "steps": [
+    {
+      "id": "navigate",
+      "name": "Navigate to test page",
+      "driver": "web",
+      "action": "navigate",
+      "explain": "Open the web runner demo page.",
+      "target": {
+        "ladder": [
+          {
+            "kind": "web_css",
+            "confidence": 1,
+            "selector": { "css": "body" }
+          }
+        ]
+      },
+      "params": { "url": { "var": "TEST_APP_URL" } },
+      "retry": { "attempts": 1, "wait_ms": 0, "backoff": "none" },
+      "pre_assert": [
+        { "kind": "web_url_contains", "url_contains": "about:blank" }
+      ],
+      "post_assert": [
+        { "kind": "web_title_contains", "title_contains": "Web Runner Demo" }
+      ]
+    },
+    {
+      "id": "fill_name",
+      "name": "Fill name",
+      "driver": "web",
+      "action": "fill",
+      "explain": "Enter the provided name.",
+      "target": {
+        "ladder": [
+          {
+            "kind": "web_label",
+            "confidence": 1,
+            "selector": { "text": "Name" }
+          }
+        ]
+      },
+      "input": { "var": "name", "transform": "trim" },
+      "retry": { "attempts": 2, "wait_ms": 250, "backoff": "linear" },
+      "pre_assert": [
+        {
+          "kind": "web_visible",
+          "target": {
+            "ladder": [
+              {
+                "kind": "web_css",
+                "confidence": 1,
+                "selector": { "css": "#name-input" }
+              }
+            ]
+          }
+        }
+      ],
+      "post_assert": [
+        {
+          "kind": "web_value_equals",
+          "target": {
+            "ladder": [
+              {
+                "kind": "web_css",
+                "confidence": 1,
+                "selector": { "css": "#name-input" }
+              }
+            ]
+          },
+          "value": "Ada"
+        }
+      ]
+    },
+    {
+      "id": "select_choice",
+      "name": "Select choice",
+      "driver": "web",
+      "action": "select",
+      "explain": "Choose the configured option.",
+      "target": {
+        "ladder": [
+          {
+            "kind": "web_css",
+            "confidence": 1,
+            "selector": { "css": "#choice-select" }
+          }
+        ]
+      },
+      "input": { "var": "choice" },
+      "retry": { "attempts": 2, "wait_ms": 250, "backoff": "linear" },
+      "pre_assert": [
+        {
+          "kind": "web_visible",
+          "target": {
+            "ladder": [
+              {
+                "kind": "web_css",
+                "confidence": 1,
+                "selector": { "css": "#choice-select" }
+              }
+            ]
+          }
+        }
+      ],
+      "post_assert": [
+        {
+          "kind": "web_value_equals",
+          "target": {
+            "ladder": [
+              {
+                "kind": "web_css",
+                "confidence": 1,
+                "selector": { "css": "#choice-select" }
+              }
+            ]
+          },
+          "value": "beta"
+        }
+      ]
+    },
+    {
+      "id": "click_submit",
+      "name": "Click submit",
+      "driver": "web",
+      "action": "click",
+      "explain": "Submit the form.",
+      "target": {
+        "ladder": [
+          {
+            "kind": "web_role",
+            "confidence": 1,
+            "selector": { "role": "button", "name": "Submit" }
+          }
+        ]
+      },
+      "retry": { "attempts": 2, "wait_ms": 250, "backoff": "linear" },
+      "pre_assert": [
+        {
+          "kind": "web_visible",
+          "target": {
+            "ladder": [
+              {
+                "kind": "web_role",
+                "confidence": 1,
+                "selector": { "role": "button", "name": "Submit" }
+              }
+            ]
+          }
+        }
+      ],
+      "post_assert": [
+        {
+          "kind": "web_text_contains",
+          "target": {
+            "ladder": [
+              {
+                "kind": "web_css",
+                "confidence": 1,
+                "selector": { "css": "#result" }
+              }
+            ]
+          },
+          "text": "Hello Ada"
+        }
+      ]
+    }
+  ]
+}

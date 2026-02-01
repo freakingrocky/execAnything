@@ -2,6 +2,8 @@ import json
 import sys
 from types import ModuleType
 
+import pytest
+
 from desktop_runner.artifacts import screenshots
 
 
@@ -17,8 +19,6 @@ class FakeImage:
 def test_capture_screenshot_writes_file(tmp_path, monkeypatch):
     fake_pil = ModuleType("PIL")
     monkeypatch.setitem(sys.modules, "PIL", fake_pil)
-    assert sys.modules["PIL"] is fake_pil
-
 
     class FakeImageGrab:
         @staticmethod
@@ -34,3 +34,9 @@ def test_capture_screenshot_writes_file(tmp_path, monkeypatch):
 
     assert (tmp_path / "shot.png").exists()
     assert path.endswith("shot.png")
+
+
+def test_capture_screenshot_raises_on_non_windows(monkeypatch, tmp_path):
+    monkeypatch.setattr(screenshots.os, "name", "posix")
+    with pytest.raises(RuntimeError, match="only supported on Windows"):
+        screenshots.capture_screenshot("shot.png", base_dir=tmp_path, mode="screen")

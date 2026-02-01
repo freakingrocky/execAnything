@@ -25,3 +25,18 @@ The desktop runner uses the following error codes in JSON-RPC error responses:
 - `1004` AssertionFailed: assert.check failed
 - `1005` Timeout: operation timed out
 - `1006` OCRUnavailable: OCR requested but not available
+
+## Web assertion kinds
+
+Web assertions in the workflow DSL include:
+
+- `web_exists`: target is attached to the DOM
+- `web_visible`: target is visible
+- `web_url_contains`: current URL contains `url_contains`
+- `web_url_equals`: current URL equals `url_equals`
+- `web_title_contains`: document title contains `title_contains`
+- `web_text_contains`: target text contains `text`
+- `web_text_equals`: target text equals `text`
+- `web_value_equals`: target input value equals `value`
+- `web_value_contains`: target input value contains `value`
+- `not`: negate nested assertion
